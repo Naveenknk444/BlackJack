@@ -61,9 +61,10 @@ public class Startup
         // specifying the Swagger JSON endpoint.
         app.UseSwaggerUI(c =>
         {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-            c.RoutePrefix = string.Empty; // Set Swagger UI at the root of the application
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "BlackJackAPI v1");
+            c.RoutePrefix = "swagger"; // This makes Swagger available at the root "/"
         });
+
 
         app.UseEndpoints(endpoints =>
         {
