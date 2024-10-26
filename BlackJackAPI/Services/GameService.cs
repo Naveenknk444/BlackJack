@@ -202,31 +202,95 @@ namespace BlackJackAPI.Api.Services
             gameSession.HasDoubledDown = true;
         }
 
+        public void SplitHand(int gameId)
+        {
+            if (!_games.ContainsKey(gameId))
+                throw new KeyNotFoundException("Game not found");
+
+            var gameSession = _games[gameId];
+
+            // Ensure the player has exactly two cards and they are of the same rank
+            if (gameSession.PlayerHand.Count != 2 || gameSession.PlayerHand[0].Rank != gameSession.PlayerHand[1].Rank)
+                throw new InvalidOperationException("Split can only be done with a pair of cards.");
+
+            // Check if the player has enough balance to split
+            if (PlayerBalance < gameSession.BetAmount)
+                throw new InvalidOperationException("Insufficient balance to split.");
+
+            // Deduct the additional bet amount from PlayerBalance for the split hand
+            PlayerBalance -= gameSession.BetAmount;
+
+            // Initialize the split hands
+            gameSession.PlayerHand1 = new List<Card> { gameSession.PlayerHand[0] };
+            gameSession.PlayerHand2 = new List<Card> { gameSession.PlayerHand[1] };
+
+            // Draw an additional card for each hand
+            gameSession.PlayerHand1.Add(gameSession.Deck.DrawCard());
+            gameSession.PlayerHand2.Add(gameSession.Deck.DrawCard());
+
+            gameSession.HasSplit = true;
+        }
 
         private GameResult DetermineGameResult(GameSession gameSession)
         {
-            var (playerScore, playerHasBlackjack) = CalculateScore(gameSession.PlayerHand);
-            var (dealerScore, dealerHasBlackjack) = CalculateScore(gameSession.DealerHand);
+            decimal totalPayout = 0;
 
+            // Check if the player has split their hand
+            if (gameSession.HasSplit)
+            {
+                // Calculate result for PlayerHand1
+                var (score1, hasBlackjack1) = CalculateScore(gameSession.PlayerHand1);
+                var (dealerScore, dealerHasBlackjack) = CalculateScore(gameSession.DealerHand);
+                var result1 = CalculateHandOutcome(score1, hasBlackjack1, dealerScore, dealerHasBlackjack, gameSession.BetAmount);
+                totalPayout += result1.Payout;
+
+                // Calculate result for PlayerHand2
+                var (score2, hasBlackjack2) = CalculateScore(gameSession.PlayerHand2);
+                var result2 = CalculateHandOutcome(score2, hasBlackjack2, dealerScore, dealerHasBlackjack, gameSession.BetAmount);
+                totalPayout += result2.Payout;
+
+                // Return combined results and payout
+                return new GameResult
+                {
+                    GameId = gameSession.GameId,
+                    PlayerScore = score1 + score2,
+                    DealerScore = dealerScore,
+                    Result = $"{result1.Result}, {result2.Result}",
+                    Payout = totalPayout
+                };
+            }
+            else
+            {
+                // Standard single-hand calculation if no split
+                var (playerScore, playerHasBlackjack) = CalculateScore(gameSession.PlayerHand);
+                var (dealerScore, dealerHasBlackjack) = CalculateScore(gameSession.DealerHand);
+                return CalculateHandOutcome(playerScore, playerHasBlackjack, dealerScore, dealerHasBlackjack, gameSession.BetAmount);
+            }
+        }
+
+
+
+
+        private GameResult CalculateHandOutcome(int playerScore, bool playerHasBlackjack, int dealerScore, bool dealerHasBlackjack, decimal betAmount)
+        {
             string result;
             decimal payoutMultiplier = 0;
 
-            // Check for Blackjack outcomes first
             if (playerHasBlackjack && dealerHasBlackjack)
             {
                 result = "Push (Both Player and Dealer have Blackjack)";
-                payoutMultiplier = 0; // No payout on a tie
-                PlayerBalance += gameSession.BetAmount; // Return initial bet on tie
+                payoutMultiplier = 0;
+                AdjustPlayerBalance(betAmount); // Return initial bet on tie
             }
             else if (playerHasBlackjack)
             {
                 result = "Player Wins with Blackjack!";
-                payoutMultiplier = 1.5M; // 3:2 payout for Blackjack
+                payoutMultiplier = 1.5M;
             }
             else if (dealerHasBlackjack)
             {
                 result = "Dealer Wins with Blackjack";
-                payoutMultiplier = 0; // No payout for player loss
+                payoutMultiplier = 0;
             }
             else if (playerScore > 21)
             {
@@ -236,12 +300,12 @@ namespace BlackJackAPI.Api.Services
             else if (dealerScore > 21)
             {
                 result = "Dealer Busts, Player Wins";
-                payoutMultiplier = 1; // 1:1 payout for regular win
+                payoutMultiplier = 1;
             }
             else if (playerScore > dealerScore)
             {
                 result = "Player Wins";
-                payoutMultiplier = 1; // 1:1 payout for regular win
+                payoutMultiplier = 1;
             }
             else if (playerScore < dealerScore)
             {
@@ -252,26 +316,21 @@ namespace BlackJackAPI.Api.Services
             {
                 result = "Push (Tie)";
                 payoutMultiplier = 0;
-                PlayerBalance += gameSession.BetAmount; // Return initial bet on tie
+                AdjustPlayerBalance(betAmount); // Return initial bet on tie
             }
 
-            // Calculate payout based on BetAmount and payoutMultiplier
-            decimal payout = gameSession.BetAmount * payoutMultiplier;
-            PlayerBalance += payout; // Adjust player balance based on outcome
-
-            // End the game session
-            gameSession.EndGame();
+            decimal payout = betAmount * payoutMultiplier;
+            AdjustPlayerBalance(payout);
 
             return new GameResult
             {
-                GameId = gameSession.GameId,
+                GameId = 0, // This can be set to gameSession.GameId if needed
                 PlayerScore = playerScore,
                 DealerScore = dealerScore,
                 Result = result,
                 Payout = payout
             };
         }
-
 
     }
 }

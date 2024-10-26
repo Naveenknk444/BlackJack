@@ -10,9 +10,12 @@ namespace BlackJackAPI.Models
         public Deck Deck { get; private set; }
         public List<Card> PlayerHand { get; private set; }
         public List<Card> DealerHand { get; private set; }
+        public List<Card>? PlayerHand1 { get; set; } // First hand after split
+        public List<Card>? PlayerHand2 { get; set; } // Second hand after split
         public bool IsGameActive { get; private set; }
-        public decimal BetAmount { get; private set; } // Keep as private set TODO Naveen
-        public bool HasDoubledDown { get; internal set; }
+        public decimal BetAmount { get; private set; }
+        public bool HasDoubledDown { get; set; }
+        public bool HasSplit { get; set; } // New property to track split status
 
         public GameSession(int gameId)
         {
@@ -20,17 +23,18 @@ namespace BlackJackAPI.Models
             Deck = new Deck();
             PlayerHand = new List<Card>();
             DealerHand = new List<Card>();
+            PlayerHand1 = null;
+            PlayerHand2 = null;
             IsGameActive = true;
-            BetAmount = 0;
+            HasDoubledDown = false;
+            HasSplit = false;
         }
 
-        // Set initial bet
         public void SetBetAmount(decimal amount)
         {
             BetAmount = amount;
         }
 
-        // Double the bet
         public void DoubleBet()
         {
             BetAmount *= 2;
