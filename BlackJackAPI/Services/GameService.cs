@@ -11,11 +11,23 @@ namespace BlackJackAPI.Api.Services
         private decimal PlayerBalance = 1000; // Initial balance, can be modified as needed
 
 
-        public Game StartGame()
+
+        public Game StartGame(decimal betAmount)
         {
-            int gameId = _random.Next(1, 10000);
+            int gameId = new Random().Next(1, 10000);
             var gameSession = new GameSession(gameId);
+
             _games[gameId] = gameSession;
+
+            // Place the initial bet
+            PlaceBet(gameId, betAmount);
+
+            // Start the game by dealing initial cards
+            gameSession.Deck.Shuffle();
+            gameSession.PlayerHand.Add(gameSession.Deck.DrawCard());
+            gameSession.PlayerHand.Add(gameSession.Deck.DrawCard());
+            gameSession.DealerHand.Add(gameSession.Deck.DrawCard());
+            gameSession.DealerHand.Add(gameSession.Deck.DrawCard());
 
             return new Game
             {
@@ -25,6 +37,7 @@ namespace BlackJackAPI.Api.Services
                 Deck = gameSession.Deck
             };
         }
+
 
         public GameResult EndGame(int gameId)
         {
@@ -130,6 +143,23 @@ namespace BlackJackAPI.Api.Services
                 return hasAce && hasTenValueCard;
             }
             return false;
+        }
+
+        public void PlaceBet(int gameId, decimal amount)
+        {
+            if (!_games.ContainsKey(gameId))
+                throw new KeyNotFoundException("Game not found");
+
+            var gameSession = _games[gameId];
+
+            if (gameSession.IsGameActive)
+                throw new InvalidOperationException("Bet cannot be changed once the game has started.");
+
+            if (amount > PlayerBalance)
+                throw new InvalidOperationException("Insufficient balance to place this bet.");
+
+            gameSession.SetBetAmount(amount);
+            PlayerBalance -= amount; // Deduct bet amount from player balance
         }
 
         private GameResult DetermineGameResult(GameSession gameSession)

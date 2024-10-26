@@ -5,7 +5,7 @@ namespace BlackJackAPI.Api.Services
 {
     public interface IGameService
     {
-        Game StartGame();
+        Game StartGame(decimal betAmount);
         GameResult EndGame(int gameId);
         Card DrawCard(int gameId, int playerId);
         GameResult Stand(int gameId, int playerId);

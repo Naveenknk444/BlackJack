@@ -16,11 +16,19 @@ namespace YourApp.Api.Controllers
 
         // Start Game Endpoint
         [HttpPost("start")]
-        public IActionResult StartGame()
+        public IActionResult StartGame([FromBody] decimal betAmount)
         {
-            var game = _gameService.StartGame();
-            return Ok(game); // Returns game details, including game ID
+            try
+            {
+                var game = _gameService.StartGame(betAmount);
+                return Ok(game); // Returns game details, including game ID and bet amount
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message); // Handles any errors, such as insufficient balance
+            }
         }
+
 
         // End Game Endpoint
         [HttpPost("end")]

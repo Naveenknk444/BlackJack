@@ -11,6 +11,8 @@ namespace BlackJackAPI.Models
         public List<Card> PlayerHand { get; private set; }
         public List<Card> DealerHand { get; private set; }
         public bool IsGameActive { get; private set; }
+        public decimal BetAmount { get; private set; } // New property to track the bet amount
+
 
         public GameSession(int gameId)
         {
@@ -28,7 +30,10 @@ namespace BlackJackAPI.Models
             Deck.Shuffle();
             DealInitialCards();
         }
-
+        public void SetBetAmount(decimal amount)
+        {
+            BetAmount = amount;
+        }
         private void DealInitialCards()
         {
             // Deal two cards to the player
