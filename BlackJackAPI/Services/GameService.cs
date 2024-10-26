@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using BlackJackAPI.Api.Services;
 using BlackJackAPI.Models;
 
 namespace BlackJackAPI.Api.Services
@@ -9,6 +8,8 @@ namespace BlackJackAPI.Api.Services
     {
         private readonly Dictionary<int, GameSession> _games = new();
         private readonly Random _random = new();
+        private decimal PlayerBalance = 1000; // Initial balance, can be modified as needed
+
 
         public Game StartGame()
         {
@@ -54,11 +55,7 @@ namespace BlackJackAPI.Api.Services
                 throw new KeyNotFoundException("Game not found");
 
             var gameSession = _games[gameId];
-
-            // Call DealerPlay to handle the dealer's turn
             gameSession.DealerPlay();
-
-            // Determine the final result after the dealer plays
             return DetermineGameResult(gameSession);
         }
 
@@ -96,6 +93,7 @@ namespace BlackJackAPI.Api.Services
         }
 
         // Helper methods
+
         private int CalculateScore(List<Card> hand)
         {
             int totalValue = 0;
@@ -118,33 +116,49 @@ namespace BlackJackAPI.Api.Services
 
             return totalValue;
         }
-
         private GameResult DetermineGameResult(GameSession gameSession)
         {
             int playerScore = CalculateScore(gameSession.PlayerHand);
             int dealerScore = CalculateScore(gameSession.DealerHand);
 
             string result;
+            decimal payoutMultiplier = 0;
+
             if (playerScore > 21)
             {
                 result = "Player Busts, Dealer Wins";
+                payoutMultiplier = 0; // No payout on loss
             }
             else if (dealerScore > 21)
             {
                 result = "Dealer Busts, Player Wins";
+                payoutMultiplier = 1; // Standard 1:1 payout
+            }
+            else if (playerScore == 21 && gameSession.PlayerHand.Count == 2)
+            {
+                result = "Player Wins with Blackjack!";
+                payoutMultiplier = 1.5M; // 3:2 payout for Blackjack
             }
             else if (playerScore > dealerScore)
             {
                 result = "Player Wins";
+                payoutMultiplier = 1; // Standard 1:1 payout
             }
             else if (playerScore < dealerScore)
             {
                 result = "Dealer Wins";
+                payoutMultiplier = 0; // No payout on loss
             }
             else
             {
                 result = "Push (Tie)";
+                payoutMultiplier = 0; // No payout on tie
             }
+
+            // Calculate payout and update player balance
+            decimal wager = 100; // Example wager amount; adjust based on game settings
+            decimal payout = wager * payoutMultiplier;
+            PlayerBalance += payout;
 
             gameSession.EndGame();
 
@@ -153,8 +167,10 @@ namespace BlackJackAPI.Api.Services
                 GameId = gameSession.GameId,
                 PlayerScore = playerScore,
                 DealerScore = dealerScore,
-                Result = result
+                Result = result,
+                Payout = payout
             };
         }
+
     }
 }
