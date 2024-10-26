@@ -190,18 +190,18 @@ namespace BlackJackAPI.Api.Services
             if (gameSession.PlayerHand.Count != 2)
                 throw new InvalidOperationException("Double down can only be done at the beginning of the player's turn.");
 
-            // Double the bet and deduct the additional amount from PlayerBalance
             decimal additionalBet = gameSession.BetAmount;
             if (PlayerBalance < additionalBet)
                 throw new InvalidOperationException("Insufficient balance to double down.");
 
-            gameSession.BetAmount *= 2;
+            gameSession.DoubleBet(); // Use DoubleBet to modify BetAmount
             PlayerBalance -= additionalBet;
 
             // Draw one additional card for the player
             gameSession.PlayerHand.Add(gameSession.Deck.DrawCard());
-            gameSession.HasDoubledDown = true; // Track that the player has doubled down
+            gameSession.HasDoubledDown = true;
         }
+
 
         private GameResult DetermineGameResult(GameSession gameSession)
         {

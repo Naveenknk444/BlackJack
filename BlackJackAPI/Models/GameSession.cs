@@ -11,7 +11,7 @@ namespace BlackJackAPI.Models
         public List<Card> PlayerHand { get; private set; }
         public List<Card> DealerHand { get; private set; }
         public bool IsGameActive { get; private set; }
-        public decimal BetAmount { get;  set; } // Keep as private set TODO Naveen
+        public decimal BetAmount { get; private set; } // Keep as private set TODO Naveen
         public bool HasDoubledDown { get; internal set; }
 
         public GameSession(int gameId)
