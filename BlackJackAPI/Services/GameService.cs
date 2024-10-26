@@ -116,46 +116,70 @@ namespace BlackJackAPI.Api.Services
 
             return totalValue;
         }
+
+        private bool HasBlackjack(List<Card> hand)
+        {
+            if (hand.Count == 2)
+            {
+                bool hasAce = hand.Any(card => card.Rank == "Ace");
+                bool hasTenValueCard = hand.Any(card => card.Value == 10);
+                return hasAce && hasTenValueCard;
+            }
+            return false;
+        }
+
         private GameResult DetermineGameResult(GameSession gameSession)
         {
             int playerScore = CalculateScore(gameSession.PlayerHand);
             int dealerScore = CalculateScore(gameSession.DealerHand);
 
+            bool playerHasBlackjack = HasBlackjack(gameSession.PlayerHand);
+            bool dealerHasBlackjack = HasBlackjack(gameSession.DealerHand);
+
             string result;
             decimal payoutMultiplier = 0;
 
-            if (playerScore > 21)
+            if (playerHasBlackjack && dealerHasBlackjack)
             {
-                result = "Player Busts, Dealer Wins";
-                payoutMultiplier = 0; // No payout on loss
+                result = "Push (Both Player and Dealer have Blackjack)";
+                payoutMultiplier = 0; // No payout on a tie
             }
-            else if (dealerScore > 21)
-            {
-                result = "Dealer Busts, Player Wins";
-                payoutMultiplier = 1; // Standard 1:1 payout
-            }
-            else if (playerScore == 21 && gameSession.PlayerHand.Count == 2)
+            else if (playerHasBlackjack)
             {
                 result = "Player Wins with Blackjack!";
                 payoutMultiplier = 1.5M; // 3:2 payout for Blackjack
             }
+            else if (dealerHasBlackjack)
+            {
+                result = "Dealer Wins with Blackjack";
+                payoutMultiplier = 0; // No payout for player
+            }
+            else if (playerScore > 21)
+            {
+                result = "Player Busts, Dealer Wins";
+                payoutMultiplier = 0;
+            }
+            else if (dealerScore > 21)
+            {
+                result = "Dealer Busts, Player Wins";
+                payoutMultiplier = 1;
+            }
             else if (playerScore > dealerScore)
             {
                 result = "Player Wins";
-                payoutMultiplier = 1; // Standard 1:1 payout
+                payoutMultiplier = 1;
             }
             else if (playerScore < dealerScore)
             {
                 result = "Dealer Wins";
-                payoutMultiplier = 0; // No payout on loss
+                payoutMultiplier = 0;
             }
             else
             {
                 result = "Push (Tie)";
-                payoutMultiplier = 0; // No payout on tie
+                payoutMultiplier = 0;
             }
 
-            // Calculate payout and update player balance
             decimal wager = 100; // Example wager amount; adjust based on game settings
             decimal payout = wager * payoutMultiplier;
             PlayerBalance += payout;
@@ -171,6 +195,7 @@ namespace BlackJackAPI.Api.Services
                 Payout = payout
             };
         }
+
 
     }
 }
