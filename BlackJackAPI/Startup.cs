@@ -7,6 +7,8 @@ using Microsoft.Extensions.Hosting;
 using BlackjackDataAccess.Interfaces;
 using BlackjackDataAccess.Data;
 using BlackjackDataAccess.Repositories;
+using BlackJackAPI.Api.Services;
+//using BlackJackAPI.Api.Interfaces;  //TODO Naveen
 
 public class Startup
 {
@@ -30,6 +32,7 @@ public class Startup
         // Register Repositories with DI
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IGameSessionRepository, GameSessionRepository>();
+        services.AddScoped<IGameService, GameService>();
         // services.AddScoped<IPerformanceMetricRepository, PerformanceMetricRepository>(); // Uncomment when needed
 
         // Add services to support controllers (API Controllers)
