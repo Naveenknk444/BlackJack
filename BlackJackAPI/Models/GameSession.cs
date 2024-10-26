@@ -1,4 +1,8 @@
-﻿namespace BlackJackAPI.Models
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace BlackJackAPI.Models
 {
     public class GameSession
     {
@@ -64,24 +68,41 @@
         {
             // Calculate the dealer's hand value
             int dealerHandValue = CalculateHandValue(DealerHand);
+            Console.WriteLine($"Initial dealer hand value: {dealerHandValue}");
+            Console.WriteLine("Dealer's initial hand:");
+            PrintHand(DealerHand);
 
             // Continue drawing cards while the dealer's hand value is less than 17
             while (dealerHandValue < 17 || (dealerHandValue == 17 && HasSoft17(DealerHand)))
             {
-                // Draw a card for the dealer
+                Console.WriteLine("Dealer draws a card...");
                 DealerHand.Add(Deck.DrawCard());
 
                 // Recalculate the dealer's hand value after drawing a card
                 dealerHandValue = CalculateHandValue(DealerHand);
+                Console.WriteLine($"Updated dealer hand value: {dealerHandValue}");
+                Console.WriteLine("Dealer's updated hand:");
+                PrintHand(DealerHand);
             }
+
+            Console.WriteLine($"Final dealer hand value: {dealerHandValue}");
+            Console.WriteLine("Dealer's final hand:");
+            PrintHand(DealerHand);
         }
 
         private bool HasSoft17(List<Card> hand)
         {
-            // Check if the dealer's hand contains a soft 17
             int value = CalculateHandValue(hand);
             bool hasAce = hand.Any(card => card.Rank == "Ace");
             return value == 17 && hasAce;
+        }
+
+        private void PrintHand(List<Card> hand)
+        {
+            foreach (var card in hand)
+            {
+                Console.WriteLine(card.ToString());
+            }
         }
 
         public void EndGame()
