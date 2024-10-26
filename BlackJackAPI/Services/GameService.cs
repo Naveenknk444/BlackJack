@@ -2,33 +2,27 @@
 using System.Collections.Generic;
 using BlackJackAPI.Api.Services;
 using BlackJackAPI.Models;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BlackJackAPI.Api.Services
 {
     public class GameService : IGameService
     {
-        private readonly Dictionary<int, Game> _games = new();
+        private readonly Dictionary<int, GameSession> _games = new();
         private readonly Random _random = new();
 
         public Game StartGame()
         {
-            var newGame = new Game
+            int gameId = _random.Next(1, 10000);
+            var gameSession = new GameSession(gameId);
+            _games[gameId] = gameSession;
+
+            return new Game
             {
-                GameId = _random.Next(1, 10000),
-                Deck = new Deck(),
-                PlayerHand = new List<Card>(),
-                DealerHand = new List<Card>()
+                GameId = gameSession.GameId,
+                PlayerHand = gameSession.PlayerHand,
+                DealerHand = gameSession.DealerHand,
+                Deck = gameSession.Deck
             };
-            newGame.Deck.Shuffle();
-
-            newGame.PlayerHand.Add(newGame.Deck.DrawCard());
-            newGame.PlayerHand.Add(newGame.Deck.DrawCard());
-            newGame.DealerHand.Add(newGame.Deck.DrawCard());
-            newGame.DealerHand.Add(newGame.Deck.DrawCard());
-
-            _games[newGame.GameId] = newGame;
-            return newGame;
         }
 
         public GameResult EndGame(int gameId)
@@ -36,15 +30,8 @@ namespace BlackJackAPI.Api.Services
             if (!_games.ContainsKey(gameId))
                 throw new KeyNotFoundException("Game not found");
 
-            var game = _games[gameId];
-            var result = new GameResult
-            {
-                GameId = gameId,
-                PlayerScore = CalculateScore(game.PlayerHand),
-                DealerScore = CalculateScore(game.DealerHand)
-            };
-
-            result.Result = DetermineWinner(result.PlayerScore, result.DealerScore);
+            var gameSession = _games[gameId];
+            var result = DetermineGameResult(gameSession);
             _games.Remove(gameId);
             return result;
         }
@@ -54,9 +41,9 @@ namespace BlackJackAPI.Api.Services
             if (!_games.ContainsKey(gameId))
                 throw new KeyNotFoundException("Game not found");
 
-            var game = _games[gameId];
-            var card = game.Deck.DrawCard();
-            game.PlayerHand.Add(card);
+            var gameSession = _games[gameId];
+            var card = gameSession.Deck.DrawCard();
+            gameSession.PlayerHand.Add(card);
 
             return card;
         }
@@ -66,16 +53,13 @@ namespace BlackJackAPI.Api.Services
             if (!_games.ContainsKey(gameId))
                 throw new KeyNotFoundException("Game not found");
 
-            var game = _games[gameId];
-            DealerTurn(game);
+            var gameSession = _games[gameId];
 
-            return new GameResult
-            {
-                GameId = gameId,
-                PlayerScore = CalculateScore(game.PlayerHand),
-                DealerScore = CalculateScore(game.DealerHand),
-                Result = DetermineWinner(CalculateScore(game.PlayerHand), CalculateScore(game.DealerHand))
-            };
+            // Call DealerPlay to handle the dealer's turn
+            gameSession.DealerPlay();
+
+            // Determine the final result after the dealer plays
+            return DetermineGameResult(gameSession);
         }
 
         public SplitResult SplitHand(int gameId, int playerId)
@@ -83,7 +67,7 @@ namespace BlackJackAPI.Api.Services
             if (!_games.ContainsKey(gameId))
                 throw new KeyNotFoundException("Game not found");
 
-            var game = _games[gameId];
+            var gameSession = _games[gameId];
             return new SplitResult { /* Details on both hands post-split */ };
         }
 
@@ -92,13 +76,13 @@ namespace BlackJackAPI.Api.Services
             if (!_games.ContainsKey(gameId))
                 throw new KeyNotFoundException("Game not found");
 
-            var game = _games[gameId];
+            var gameSession = _games[gameId];
             return new GameStatus
             {
-                GameId = gameId,
-                PlayerHand = game.PlayerHand,
-                DealerHand = game.DealerHand,
-                RemainingCards = game.Deck.Cards.Count
+                GameId = gameSession.GameId,
+                PlayerHand = gameSession.PlayerHand,
+                DealerHand = gameSession.DealerHand,
+                RemainingCards = gameSession.Deck.Cards.Count
             };
         }
 
@@ -107,23 +91,70 @@ namespace BlackJackAPI.Api.Services
             if (!_games.ContainsKey(gameId))
                 throw new KeyNotFoundException("Game not found");
 
-            var game = _games[gameId];
+            var gameSession = _games[gameId];
             return new OddsResult { /* Probability data */ };
         }
 
         // Helper methods
         private int CalculateScore(List<Card> hand)
         {
-            return 0; // Placeholder
+            int totalValue = 0;
+            int aceCount = 0;
+
+            foreach (var card in hand)
+            {
+                totalValue += card.Value;
+                if (card.Rank == "Ace")
+                {
+                    aceCount++;
+                }
+            }
+
+            while (totalValue > 21 && aceCount > 0)
+            {
+                totalValue -= 10; // Adjust Ace value from 11 to 1
+                aceCount--;
+            }
+
+            return totalValue;
         }
 
-        private void DealerTurn(Game game)
+        private GameResult DetermineGameResult(GameSession gameSession)
         {
-        }
+            int playerScore = CalculateScore(gameSession.PlayerHand);
+            int dealerScore = CalculateScore(gameSession.DealerHand);
 
-        private string DetermineWinner(int playerScore, int dealerScore)
-        {
-            return "Player"; // Placeholder
+            string result;
+            if (playerScore > 21)
+            {
+                result = "Player Busts, Dealer Wins";
+            }
+            else if (dealerScore > 21)
+            {
+                result = "Dealer Busts, Player Wins";
+            }
+            else if (playerScore > dealerScore)
+            {
+                result = "Player Wins";
+            }
+            else if (playerScore < dealerScore)
+            {
+                result = "Dealer Wins";
+            }
+            else
+            {
+                result = "Push (Tie)";
+            }
+
+            gameSession.EndGame();
+
+            return new GameResult
+            {
+                GameId = gameSession.GameId,
+                PlayerScore = playerScore,
+                DealerScore = dealerScore,
+                Result = result
+            };
         }
     }
 }
