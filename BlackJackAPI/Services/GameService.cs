@@ -234,13 +234,15 @@ namespace BlackJackAPI.Api.Services
         private GameResult DetermineGameResult(GameSession gameSession)
         {
             decimal totalPayout = 0;
+            var dealerOutcome = CalculateScore(gameSession.DealerHand);
+            int dealerScore = dealerOutcome.Item1;
+            bool dealerHasBlackjack = dealerOutcome.Item2;
 
             // Check if the player has split their hand
             if (gameSession.HasSplit)
             {
                 // Calculate result for PlayerHand1
                 var (score1, hasBlackjack1) = CalculateScore(gameSession.PlayerHand1);
-                var (dealerScore, dealerHasBlackjack) = CalculateScore(gameSession.DealerHand);
                 var result1 = CalculateHandOutcome(score1, hasBlackjack1, dealerScore, dealerHasBlackjack, gameSession.BetAmount);
                 totalPayout += result1.Payout;
 
@@ -249,27 +251,41 @@ namespace BlackJackAPI.Api.Services
                 var result2 = CalculateHandOutcome(score2, hasBlackjack2, dealerScore, dealerHasBlackjack, gameSession.BetAmount);
                 totalPayout += result2.Payout;
 
-                // Return combined results and payout
+                // Apply total payout to PlayerBalance
+                AdjustPlayerBalance(totalPayout);
+
+                // Return combined results and total payout for both hands
                 return new GameResult
                 {
                     GameId = gameSession.GameId,
                     PlayerScore = score1 + score2,
                     DealerScore = dealerScore,
                     Result = $"{result1.Result}, {result2.Result}",
-                    Payout = totalPayout
+                    Payout = totalPayout,
+                    UpdatedPlayerBalance = PlayerBalance
                 };
             }
             else
             {
                 // Standard single-hand calculation if no split
                 var (playerScore, playerHasBlackjack) = CalculateScore(gameSession.PlayerHand);
-                var (dealerScore, dealerHasBlackjack) = CalculateScore(gameSession.DealerHand);
-                return CalculateHandOutcome(playerScore, playerHasBlackjack, dealerScore, dealerHasBlackjack, gameSession.BetAmount);
+                var result = CalculateHandOutcome(playerScore, playerHasBlackjack, dealerScore, dealerHasBlackjack, gameSession.BetAmount);
+
+                // Apply payout to PlayerBalance
+                AdjustPlayerBalance(result.Payout);
+
+                // Return single hand result
+                return new GameResult
+                {
+                    GameId = gameSession.GameId,
+                    PlayerScore = playerScore,
+                    DealerScore = dealerScore,
+                    Result = result.Result,
+                    Payout = result.Payout,
+                    UpdatedPlayerBalance = PlayerBalance
+                };
             }
         }
-
-
-
 
         private GameResult CalculateHandOutcome(int playerScore, bool playerHasBlackjack, int dealerScore, bool dealerHasBlackjack, decimal betAmount)
         {
@@ -324,13 +340,14 @@ namespace BlackJackAPI.Api.Services
 
             return new GameResult
             {
-                GameId = 0, // This can be set to gameSession.GameId if needed
+                GameId = 0,
                 PlayerScore = playerScore,
                 DealerScore = dealerScore,
                 Result = result,
                 Payout = payout
             };
         }
+
 
     }
 }
