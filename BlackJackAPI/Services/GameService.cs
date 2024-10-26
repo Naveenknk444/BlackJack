@@ -8,7 +8,24 @@ namespace BlackJackAPI.Api.Services
     {
         private readonly Dictionary<int, GameSession> _games = new();
         private readonly Random _random = new();
-        private decimal PlayerBalance = 1000; // Initial balance, can be modified as needed
+        public decimal BetAmount { get; private set; } // Keep as private set
+
+        public void SetBetAmount(decimal amount)
+        {
+            BetAmount = amount;
+        }
+
+        private decimal PlayerBalance = 1000; // Initial balance for the player
+
+        public decimal GetPlayerBalance()
+        {
+            return PlayerBalance;
+        }
+
+        private void AdjustPlayerBalance(decimal amount)
+        {
+            PlayerBalance += amount; // Adds or subtracts based on the outcome
+        }
 
 
 
@@ -160,6 +177,30 @@ namespace BlackJackAPI.Api.Services
 
             gameSession.SetBetAmount(amount);
             PlayerBalance -= amount; // Deduct bet amount from player balance
+        }
+
+        public void DoubleDown(int gameId)
+        {
+            if (!_games.ContainsKey(gameId))
+                throw new KeyNotFoundException("Game not found");
+
+            var gameSession = _games[gameId];
+
+            // Ensure DoubleDown can only be used at the beginning of the player's turn
+            if (gameSession.PlayerHand.Count != 2)
+                throw new InvalidOperationException("Double down can only be done at the beginning of the player's turn.");
+
+            // Double the bet and deduct the additional amount from PlayerBalance
+            decimal additionalBet = gameSession.BetAmount;
+            if (PlayerBalance < additionalBet)
+                throw new InvalidOperationException("Insufficient balance to double down.");
+
+            gameSession.BetAmount *= 2;
+            PlayerBalance -= additionalBet;
+
+            // Draw one additional card for the player
+            gameSession.PlayerHand.Add(gameSession.Deck.DrawCard());
+            gameSession.HasDoubledDown = true; // Track that the player has doubled down
         }
 
         private GameResult DetermineGameResult(GameSession gameSession)

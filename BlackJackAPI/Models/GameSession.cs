@@ -11,8 +11,8 @@ namespace BlackJackAPI.Models
         public List<Card> PlayerHand { get; private set; }
         public List<Card> DealerHand { get; private set; }
         public bool IsGameActive { get; private set; }
-        public decimal BetAmount { get; private set; } // New property to track the bet amount
-
+        public decimal BetAmount { get;  set; } // Keep as private set TODO Naveen
+        public bool HasDoubledDown { get; internal set; }
 
         public GameSession(int gameId)
         {
@@ -21,8 +21,19 @@ namespace BlackJackAPI.Models
             PlayerHand = new List<Card>();
             DealerHand = new List<Card>();
             IsGameActive = true;
+            BetAmount = 0;
+        }
 
-            StartNewGame();
+        // Set initial bet
+        public void SetBetAmount(decimal amount)
+        {
+            BetAmount = amount;
+        }
+
+        // Double the bet
+        public void DoubleBet()
+        {
+            BetAmount *= 2;
         }
 
         private void StartNewGame()
@@ -30,10 +41,7 @@ namespace BlackJackAPI.Models
             Deck.Shuffle();
             DealInitialCards();
         }
-        public void SetBetAmount(decimal amount)
-        {
-            BetAmount = amount;
-        }
+
         private void DealInitialCards()
         {
             // Deal two cards to the player
