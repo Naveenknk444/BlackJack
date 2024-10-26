@@ -170,10 +170,12 @@ namespace BlackJackAPI.Api.Services
             string result;
             decimal payoutMultiplier = 0;
 
+            // Check for Blackjack outcomes first
             if (playerHasBlackjack && dealerHasBlackjack)
             {
                 result = "Push (Both Player and Dealer have Blackjack)";
                 payoutMultiplier = 0; // No payout on a tie
+                PlayerBalance += gameSession.BetAmount; // Return initial bet on tie
             }
             else if (playerHasBlackjack)
             {
@@ -183,7 +185,7 @@ namespace BlackJackAPI.Api.Services
             else if (dealerHasBlackjack)
             {
                 result = "Dealer Wins with Blackjack";
-                payoutMultiplier = 0; // No payout for player
+                payoutMultiplier = 0; // No payout for player loss
             }
             else if (playerScore > 21)
             {
@@ -193,12 +195,12 @@ namespace BlackJackAPI.Api.Services
             else if (dealerScore > 21)
             {
                 result = "Dealer Busts, Player Wins";
-                payoutMultiplier = 1;
+                payoutMultiplier = 1; // 1:1 payout for regular win
             }
             else if (playerScore > dealerScore)
             {
                 result = "Player Wins";
-                payoutMultiplier = 1;
+                payoutMultiplier = 1; // 1:1 payout for regular win
             }
             else if (playerScore < dealerScore)
             {
@@ -209,12 +211,14 @@ namespace BlackJackAPI.Api.Services
             {
                 result = "Push (Tie)";
                 payoutMultiplier = 0;
+                PlayerBalance += gameSession.BetAmount; // Return initial bet on tie
             }
 
-            decimal wager = 100; // Example wager amount; adjust based on game settings
-            decimal payout = wager * payoutMultiplier;
-            PlayerBalance += payout;
+            // Calculate payout based on BetAmount and payoutMultiplier
+            decimal payout = gameSession.BetAmount * payoutMultiplier;
+            PlayerBalance += payout; // Adjust player balance based on outcome
 
+            // End the game session
             gameSession.EndGame();
 
             return new GameResult
