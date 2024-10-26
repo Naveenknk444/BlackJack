@@ -93,8 +93,7 @@ namespace BlackJackAPI.Api.Services
         }
 
         // Helper methods
-
-        private int CalculateScore(List<Card> hand)
+        private (int score, bool isBlackjack) CalculateScore(List<Card> hand)
         {
             int totalValue = 0;
             int aceCount = 0;
@@ -108,14 +107,19 @@ namespace BlackJackAPI.Api.Services
                 }
             }
 
+            // Adjust for Aces if the total value exceeds 21
             while (totalValue > 21 && aceCount > 0)
             {
                 totalValue -= 10; // Adjust Ace value from 11 to 1
                 aceCount--;
             }
 
-            return totalValue;
+            // Check for natural Blackjack
+            bool isBlackjack = (totalValue == 21 && hand.Count == 2);
+
+            return (totalValue, isBlackjack);
         }
+
 
         private bool HasBlackjack(List<Card> hand)
         {
@@ -130,11 +134,8 @@ namespace BlackJackAPI.Api.Services
 
         private GameResult DetermineGameResult(GameSession gameSession)
         {
-            int playerScore = CalculateScore(gameSession.PlayerHand);
-            int dealerScore = CalculateScore(gameSession.DealerHand);
-
-            bool playerHasBlackjack = HasBlackjack(gameSession.PlayerHand);
-            bool dealerHasBlackjack = HasBlackjack(gameSession.DealerHand);
+            var (playerScore, playerHasBlackjack) = CalculateScore(gameSession.PlayerHand);
+            var (dealerScore, dealerHasBlackjack) = CalculateScore(gameSession.DealerHand);
 
             string result;
             decimal payoutMultiplier = 0;
