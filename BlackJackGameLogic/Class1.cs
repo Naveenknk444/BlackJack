@@ -4,11 +4,14 @@
     {
 <xsl:template match="Citation" mode="#all">
     <div class="pn-poms-citation">
-        <b>CITATIONS:</b>
+        <span class="pn-poms-citation-title" style="font-weight: bold;">CITATIONS:</span>
         <xsl:text> </xsl:text>
-        <xsl:apply-templates/>
+        <span class="pn-poms-citation-text">
+            <xsl:apply-templates/>
+        </span>
     </div>
 </xsl:template>
+
 
 
 
