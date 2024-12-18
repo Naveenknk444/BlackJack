@@ -6,13 +6,12 @@
 
 <xsl:template match="Citation">
     <div class="pn-poms-citation">
-        <span class="pn-poms-citation-title" style="font-weight: bold;">CITATIONS:</span>
+        <xsl:text disable-output-escaping="yes">&lt;span style="font-weight: bold;"&gt;CITATIONS:&lt;/span&gt;</xsl:text>
         <xsl:text> </xsl:text>
-        <span class="pn-poms-citation-text">
-            <xsl:apply-templates/>
-        </span>
+        <xsl:apply-templates/>
     </div>
 </xsl:template>
+
 
 
 
