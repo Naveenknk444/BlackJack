@@ -9,7 +9,7 @@
         <span class="pn-poms-citation-title" style="font-weight: bold;">CITATIONS:</span>
         <xsl:text> </xsl:text>
         <span class="pn-poms-citation-text">
-            <xsl:apply-templates/>
+            <xsl:value-of select="."/>
         </span>
     </div>
 </xsl:template>
