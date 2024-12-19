@@ -4,20 +4,15 @@
     {
 
 
-<xsl:template match="Citation">
+<xsl:template match="Citation" mode="#all">
     <div class="pn-poms-citation">
-        <xsl:text disable-output-escaping="yes">&lt;span style="font-weight: bold;"&gt;CITATIONS:&lt;/span&gt;</xsl:text>
+        <span class="pn-poms-citation-title" style="font-weight: bold;">CITATIONS:</span>
         <xsl:text> </xsl:text>
-        <xsl:apply-templates/>
+        <span class="pn-poms-citation-text">
+            <xsl:apply-templates/>
+        </span>
     </div>
 </xsl:template>
-
-
-
-
-
-
-
 
 
 
