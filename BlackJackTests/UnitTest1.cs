@@ -1,13 +1,14 @@
 [Test]
-public async Task TestBulkUpdate_WithMissingRequiredColumn()
+public async Task TestBulkUpdate_WithMalformedXmlContent()
 {
-    // Arrange: Mock data with missing 'instr_ver_id' column
+    // Arrange: Mock data with malformed XML
     var bulkToBeUpdated = new List<DataRow>
     {
         CreateMockDataRow(new Dictionary<string, string>
         {
-            { "HtmlContentText", "<?xml version=\"1.0\"?><root><node>Valid Content</node></root>" },
-            { "cmn_id", "12345" } // Missing 'instr_ver_id'
+            { "HtmlContentText", "<root><node>Missing Closing Tag" }, // Malformed XML
+            { "cmn_id", "12345" },
+            { "instr_ver_id", "67890" }
         })
     };
 
@@ -18,11 +19,14 @@ public async Task TestBulkUpdate_WithMissingRequiredColumn()
     var batchSize = 10;
     var saveLocal = false;
 
-    // Act & Assert: Expect an exception due to the missing 'instr_ver_id' column
-    var exception = Assert.ThrowsAsync<ArgumentException>(async () =>
-        await ConvertXmlToHtml.BulkUpdate(bulkToBeUpdated, indexList, cmpList, batchSize, saveLocal)
-    );
-
-    Assert.That(exception.Message, Does.Contain("Column 'instr_ver_id' does not belong to table"), 
-        "The error message should indicate the missing column.");
+    // Act & Assert: Ensure the method handles malformed XML gracefully
+    try
+    {
+        await ConvertXmlToHtml.BulkUpdate(bulkToBeUpdated, indexList, cmpList, batchSize, saveLocal);
+        Assert.Pass("BulkUpdate handled malformed XML without crashing.");
+    }
+    catch (Exception ex)
+    {
+        Assert.Fail($"BulkUpdate threw an exception for malformed XML: {ex.Message}");
+    }
 }
