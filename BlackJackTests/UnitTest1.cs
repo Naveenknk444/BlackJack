@@ -1,16 +1,21 @@
 [Test]
-public void TestResolveEntities_WithEmptyInput()
+public void TestSaxonTransform_WithValidXmlAndXslt()
 {
-    // Arrange: Empty XML input
-    string xmlInput = "";
-
-    // Mock indexItems and cmpList
-    var indexItems = Enumerable.Empty<DataRow>();
-    var cmpList = Enumerable.Empty<DataRow>();
+    // Arrange: Valid XML and XSLT
+    string xmlInput = "<?xml version=\"1.0\"?><root><node>Test Content</node></root>";
+    string xsltInput = @"<xsl:stylesheet version=""1.0"" xmlns:xsl=""http://www.w3.org/1999/XSL/Transform"">
+                            <xsl:template match=""/"">
+                                <html><body><xsl:value-of select=""//node"" /></body></html>
+                            </xsl:template>
+                        </xsl:stylesheet>";
+    var processor = new Processor();
+    var xsltExecutable = processor.NewXsltCompiler().Compile(new StringReader(xsltInput));
+    bool saveLocal = false;
 
     // Act
-    var result = ConvertXmlToHtml.ResolveEntities(xmlInput, "commonId", indexItems, cmpList);
+    var result = SaxonTransform(xmlInput, xsltExecutable, processor, saveLocal);
 
     // Assert
-    Assert.That(result, Is.Empty, "The method should return an empty string for empty input.");
+    Assert.That(result, Is.EqualTo("<html><body>Test Content</body></html>"), 
+        "The transformed output does not match the expected HTML.");
 }
