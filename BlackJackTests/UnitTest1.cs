@@ -1,15 +1,16 @@
 [Test]
-public void TestResolveEntities_WithMalformedXml()
+public void TestResolveEntities_WithEmptyInput()
 {
-    // Arrange: Malformed XML input
-    string xmlInput = "<?xml version=\"1.0\"?><root><section>SECTION_TITLE";
+    // Arrange: Empty XML input
+    string xmlInput = "";
 
     // Mock indexItems and cmpList
     var indexItems = Enumerable.Empty<DataRow>();
     var cmpList = Enumerable.Empty<DataRow>();
 
-    // Act & Assert
-    Assert.Throws<XmlException>(() =>
-        ConvertXmlToHtml.ResolveEntities(xmlInput, "commonId", indexItems, cmpList),
-        "The method did not throw an XmlException for malformed XML input.");
+    // Act
+    var result = ConvertXmlToHtml.ResolveEntities(xmlInput, "commonId", indexItems, cmpList);
+
+    // Assert
+    Assert.That(result, Is.Empty, "The method should return an empty string for empty input.");
 }
