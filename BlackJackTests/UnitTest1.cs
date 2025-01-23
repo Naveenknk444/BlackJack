@@ -1,9 +1,8 @@
 [Test]
-public void TestResolveEntities_RemovesMicrosoftEdgeLinks()
+public void TestResolveEntities_WithMissingXmlDeclaration()
 {
-    // Arrange: XML input with microsoft-edge links
-    string xmlInput = "<?xml version=\"1.0\"?><root><link href=\"microsoft-edge:https://example.com\">Link</link></root>";
-    string expectedOutput = "<?xml version=\"1.0\"?><root><link href=\"https://example.com\">Link</link></root>"; // Without microsoft-edge
+    // Arrange: XML without declaration
+    string xmlInput = "<root><section>SECTION_TITLE</section></root>";
 
     // Mock indexItems and cmpList
     var indexItems = Enumerable.Empty<DataRow>();
@@ -13,5 +12,5 @@ public void TestResolveEntities_RemovesMicrosoftEdgeLinks()
     var result = ConvertXmlToHtml.ResolveEntities(xmlInput, "commonId", indexItems, cmpList);
 
     // Assert
-    Assert.That(result, Is.EqualTo(expectedOutput), "The microsoft-edge links were not removed correctly.");
+    Assert.That(result, Is.Empty, "The method should return an empty string when the XML declaration is missing.");
 }
