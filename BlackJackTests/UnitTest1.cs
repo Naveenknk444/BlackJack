@@ -1,32 +1,17 @@
 [Test]
-public async Task TestBulkUpdate_WithMalformedXmlContent()
+public void TestResolveEntities_WithValidXml()
 {
-    // Arrange: Mock data with malformed XML
-    var bulkToBeUpdated = new List<DataRow>
-    {
-        CreateMockDataRow(new Dictionary<string, string>
-        {
-            { "HtmlContentText", "<root><node>Missing Closing Tag" }, // Malformed XML
-            { "cmn_id", "12345" },
-            { "instr_ver_id", "67890" }
-        })
-    };
+    // Arrange: Valid XML input
+    string xmlInput = "<?xml version=\"1.0\"?><root><section>SECTION_TITLE</section></root>";
+    string expectedOutput = "<?xml version=\"1.0\"?><root><section>CLEANED_TITLE</section></root>"; // Expected transformation
 
-    var emptyTable = new DataTable();
-    var indexList = emptyTable.AsEnumerable();
-    var cmpList = emptyTable.AsEnumerable();
+    // Mock indexItems and cmpList
+    var indexItems = Enumerable.Empty<DataRow>();
+    var cmpList = Enumerable.Empty<DataRow>();
 
-    var batchSize = 10;
-    var saveLocal = false;
+    // Act
+    var result = ConvertXmlToHtml.ResolveEntities(xmlInput, "commonId", indexItems, cmpList);
 
-    // Act & Assert: Ensure the method handles malformed XML gracefully
-    try
-    {
-        await ConvertXmlToHtml.BulkUpdate(bulkToBeUpdated, indexList, cmpList, batchSize, saveLocal);
-        Assert.Pass("BulkUpdate handled malformed XML without crashing.");
-    }
-    catch (Exception ex)
-    {
-        Assert.Fail($"BulkUpdate threw an exception for malformed XML: {ex.Message}");
-    }
+    // Assert
+    Assert.That(result, Is.EqualTo(expectedOutput), "The transformed XML does not match the expected output.");
 }
