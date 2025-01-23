@@ -1,11 +1,14 @@
-namespace BlackJackTests
+private DataRow CreateMockDataRow(Dictionary<string, string> columnValues)
 {
-    public class UnitTest1
+    var table = new DataTable();
+    foreach (var column in columnValues.Keys)
     {
-        [Fact]
-        public void Test1()
-        {
-
-        }
+        table.Columns.Add(column, typeof(string)); // Add all required columns
     }
+    var row = table.NewRow();
+    foreach (var column in columnValues)
+    {
+        row[column.Key] = column.Value; // Set the column values
+    }
+    return row;
 }
