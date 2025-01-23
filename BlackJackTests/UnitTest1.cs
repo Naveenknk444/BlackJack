@@ -1,9 +1,9 @@
 [Test]
-public void TestResolveEntities_WithValidXml()
+public void TestResolveEntities_RemovesMicrosoftEdgeLinks()
 {
-    // Arrange: Valid XML input
-    string xmlInput = "<?xml version=\"1.0\"?><root><section>SECTION_TITLE</section></root>";
-    string expectedOutput = "<?xml version=\"1.0\"?><root><section>CLEANED_TITLE</section></root>"; // Expected transformation
+    // Arrange: XML input with microsoft-edge links
+    string xmlInput = "<?xml version=\"1.0\"?><root><link href=\"microsoft-edge:https://example.com\">Link</link></root>";
+    string expectedOutput = "<?xml version=\"1.0\"?><root><link href=\"https://example.com\">Link</link></root>"; // Without microsoft-edge
 
     // Mock indexItems and cmpList
     var indexItems = Enumerable.Empty<DataRow>();
@@ -13,5 +13,5 @@ public void TestResolveEntities_WithValidXml()
     var result = ConvertXmlToHtml.ResolveEntities(xmlInput, "commonId", indexItems, cmpList);
 
     // Assert
-    Assert.That(result, Is.EqualTo(expectedOutput), "The transformed XML does not match the expected output.");
+    Assert.That(result, Is.EqualTo(expectedOutput), "The microsoft-edge links were not removed correctly.");
 }
