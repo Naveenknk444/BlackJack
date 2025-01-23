@@ -1,14 +1,28 @@
-private DataRow CreateMockDataRow(Dictionary<string, string> columnValues)
+[Test]
+public async Task TestBulkUpdate_WithValidData()
 {
-    var table = new DataTable();
-    foreach (var column in columnValues.Keys)
+    // Arrange: Create valid mock data
+    var bulkToBeUpdated = new List<DataRow>
     {
-        table.Columns.Add(column, typeof(string)); // Add all required columns
-    }
-    var row = table.NewRow();
-    foreach (var column in columnValues)
-    {
-        row[column.Key] = column.Value; // Set the column values
-    }
-    return row;
+        CreateMockDataRow(new Dictionary<string, string>
+        {
+            { "HtmlContentText", "<root><node>Valid Content</node></root>" },
+            { "cmn_id", "12345" } // Add the required column
+        })
+    };
+
+    // Create an empty DataTable for indexList and cmpList
+    var emptyTable = new DataTable();
+    var indexList = emptyTable.AsEnumerable();
+    var cmpList = emptyTable.AsEnumerable();
+
+    // Batch size and saveLocal flag
+    var batchSize = 10;
+    var saveLocal = false;
+
+    // Act: Call BulkUpdate
+    await ConvertXmlToHtml.BulkUpdate(bulkToBeUpdated, indexList, cmpList, batchSize, saveLocal);
+
+    // Assert: Ensure the method completes successfully
+    Assert.Pass("BulkUpdate processed the valid data successfully.");
 }
