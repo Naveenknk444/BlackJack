@@ -1,16 +1,15 @@
 [Test]
-public void TestResolveEntities_WithMissingXmlDeclaration()
+public void TestResolveEntities_WithMalformedXml()
 {
-    // Arrange: XML without declaration
-    string xmlInput = "<root><section>SECTION_TITLE</section></root>";
+    // Arrange: Malformed XML input
+    string xmlInput = "<?xml version=\"1.0\"?><root><section>SECTION_TITLE";
 
     // Mock indexItems and cmpList
     var indexItems = Enumerable.Empty<DataRow>();
     var cmpList = Enumerable.Empty<DataRow>();
 
-    // Act
-    var result = ConvertXmlToHtml.ResolveEntities(xmlInput, "commonId", indexItems, cmpList);
-
-    // Assert
-    Assert.That(result, Is.Empty, "The method should return an empty string when the XML declaration is missing.");
+    // Act & Assert
+    Assert.Throws<XmlException>(() =>
+        ConvertXmlToHtml.ResolveEntities(xmlInput, "commonId", indexItems, cmpList),
+        "The method did not throw an XmlException for malformed XML input.");
 }
