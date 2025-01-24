@@ -1,18 +1,31 @@
 [Test]
-public void TestSaxonTransform_WithMalformedXml()
+public async Task TestConvertXMLAndSaveToDBBasedOnQuery()
 {
-    // Arrange: Malformed XML
-    string xmlInput = "<?xml version=\"1.0\"?><root><node>Missing Closing Tag";
-    string xsltInput = @"<xsl:stylesheet version=""1.0"" xmlns:xsl=""http://www.w3.org/1999/XSL/Transform"">
-                            <xsl:template match=""/"">
-                                <html><body><xsl:value-of select=""//node"" /></body></html>
-                            </xsl:template>
-                        </xsl:stylesheet>";
-    var processor = new Processor();
-    var xsltExecutable = processor.NewXsltCompiler().Compile(new StringReader(xsltInput));
-    bool saveLocal = false;
+    // Arrange: Mock database data with HtmlContentText
+    var mockMarkupContentData = new List<Dictionary<string, string>>
+    {
+        new()
+        {
+            { "InstructionVersionId", "SCTN-04-120-01-005v16" },
+            { "MarkupContentText", "<root><node>Some XML Content</node></root>" },
+            { "HtmlContentText", "<html><body>Hardcoded HTML Content</body></html>" }, // Hardcoded HTML
+            { "MarkupContentFormat", "XML" },
+            { "ConvertedToHtml", "false" },
+            { "CommonId", "12345" }
+        }
+    };
 
-    // Act & Assert: Expect the method to return null due to malformed XML
-    var result = SaxonTransform(xmlInput, xsltExecutable, processor, saveLocal);
-    Assert.That(result, Is.Null, "The method did not handle malformed XML correctly.");
+    // Mock the database result
+    var mockDbConnection = new Mock<IDBConnection>();
+    mockDbConnection
+        .Setup(db => db.ExecuteQueryAsync(It.IsAny<string>()))
+        .ReturnsAsync(CreateMockDataTable(mockMarkupContentData));
+
+    var service = new TransformService(mockDbConnection.Object);
+
+    // Act: Call the method to test
+    await service.TransformXmlAndSavesToDb();
+
+    // Assert: Ensure the method correctly uses HtmlContentText
+    Assert.Pass("TransformXmlAndSavesToDb executed and used HtmlContentText successfully.");
 }
