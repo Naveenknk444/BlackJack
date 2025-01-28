@@ -12,7 +12,7 @@ public async Task GetHtmlDocument_ValidLocalFile_ShouldLoadSuccessfully()
     await File.WriteAllTextAsync(filePath, htmlContent);
 
     // Act
-    var document = await HallexDataMigratorSource.GetHtmlDocument(PolicyNetHtmlOrigin.Local, filePath, CancellationToken.None);
+    var document = await PolicyNetHtmlExtensions.GetHtmlDocument(PolicyNetHtmlOrigin.Local, filePath, CancellationToken.None);
 
     // Assert
     Assert.IsNotNull(document, "Document should not be null for a valid local file.");
