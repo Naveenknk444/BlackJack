@@ -1,12 +1,13 @@
 [Test]
-public void Extract_NullId_ShouldThrowArgumentException()
+public async Task Extract_InvalidId_ShouldReturnNull()
 {
     // Arrange
     var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
+    var invalidId = "INVALID_ID_12345"; // A dummy ID that does not exist
 
-    // Act & Assert
-    var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-        await source.Extract(null));
+    // Act
+    var extracted = await source.Extract(invalidId);
 
-    Assert.That(ex.Message, Does.Contain("ID cannot be null"), "Exception message does not indicate a null ID issue.");
+    // Assert
+    Assert.That(extracted, Is.Null, "Extract should return null for an invalid ID.");
 }
