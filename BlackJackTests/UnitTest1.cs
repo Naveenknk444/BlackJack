@@ -1,21 +1,21 @@
 [Test]
-public async Task GetHtmlDocument_ValidLocalFile_ShouldLoadSuccessfully()
+public async Task Extract_ValidId_ShouldReturnHallexRecord()
 {
     // Arrange
-    var filePath = "TestData/sample.html"; // File path for the test
-    var htmlContent = "<html><body>Test Content</body></html>";
-
-    // Ensure the directory exists
-    if (!Directory.Exists("TestData"))
-        Directory.CreateDirectory("TestData");
-
-    // Create the file with test content
-    await File.WriteAllTextAsync(filePath, htmlContent);
+    var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
+    var validId = HallexIds.Prod.Active.I105_ComponentRoles; // Replace with an actual valid ID
 
     // Act
-    var document = await HallexDataMigratorSource.GetHtmlDocument(PolicyNetHtmlOrigin.Local, filePath, CancellationToken.None);
+    var extracted = await source.Extract(validId);
 
     // Assert
-    Assert.IsNotNull(document, "Document should not be null for a valid local file.");
-    Assert.AreEqual("Test Content", document.DocumentNode.InnerText.Trim(), "The document content does not match the expected value.");
+    Assert.IsNotNull(extracted, "Extracted HallexRecord should not be null for a valid ID.");
+    Assert.Multiple(() =>
+    {
+        Assert.That(extracted.LinkId, Is.EqualTo(validId), "LinkId does not match the expected value.");
+        Assert.That(extracted.FullName, Is.EqualTo("null"), "FullName is not as expected.");
+        Assert.That(extracted.Deleted, Is.EqualTo(false), "Deleted flag mismatch.");
+        Assert.That(extracted.AppProfile, Is.EqualTo("HALLEX"), "AppProfile mismatch.");
+        Assert.That(extracted.DisplaySection, Is.EqualTo("I 10.5"), "DisplaySection mismatch.");
+    });
 }
