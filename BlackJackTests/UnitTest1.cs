@@ -1,20 +1,20 @@
+[Test]
+public async Task GetHtmlDocument_ValidLocalFile_ShouldLoadSuccessfully()
+{
+    // Arrange
+    var filePath = "TestData/sample.html"; // Ensure this file exists in the test directory.
+    var htmlContent = "<html><body>Sample Content</body></html>";
 
-    // Arrange: Create a DataTable with all required columns
-    var mockTable = new DataTable();
-    mockTable.Columns.Add("HtmlContentText", typeof(string));
-    mockTable.Columns.Add("MarkupContentText", typeof(string));
-    mockTable.Columns.Add("ConvertedToHtml", typeof(string));
-    mockTable.Columns.Add("CommonId", typeof(string));
-    mockTable.Columns.Add("InstructionVersionId", typeof(string));
+    // Create the test file
+    if (!Directory.Exists("TestData"))
+        Directory.CreateDirectory("TestData");
 
-    // Add rows to the DataTable
-    mockTable.Rows.Add(
-        "<html><body>Hardcoded HTML Content</body></html>", // HtmlContentText
-        "<?xml version=\"1.0\"?><root><node>Some XML Content</node></root>", // MarkupContentText
-        "false", // ConvertedToHtml
-        "12345", // CommonId
-        "SCTN-04-120-01-005v16" // InstructionVersionId
-    );
+    await File.WriteAllTextAsync(filePath, htmlContent);
 
-    // Convert rows into a list of DataRow
-    var mockMarkupContentData = mockTable.AsEnumerable().ToList();
+    // Act
+    var document = await HallexDataMigratorSource.GetHtmlDocument(PolicyNetHtmlOrigin.Local, filePath, CancellationToken.None);
+
+    // Assert
+    Assert.IsNotNull(document, "Document should not be null for a valid local file.");
+    Assert.AreEqual("Sample Content", document.DocumentNode.InnerText.Trim(), "The document content does not match the expected value.");
+}
