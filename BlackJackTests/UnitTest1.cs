@@ -1,9 +1,9 @@
 [Test]
-public async Task Extract_ValidId_HA_014_30_021_ShouldReturnHallexRecord()
+public async Task Extract_ValidId_HA_014_30_022_ShouldReturnHallexRecord()
 {
     // Arrange
     var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
-    var validId = "HA-014-30-021"; // Different test ID
+    var validId = "HA-014-30-022";
 
     // Act
     var extracted = await source.Extract(validId);
