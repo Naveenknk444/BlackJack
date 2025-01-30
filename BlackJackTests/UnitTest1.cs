@@ -1,20 +1,53 @@
-### **Code Changes for Unit Test Implementation**
-
----
-
-### **1️⃣ Create `IHallexDataRepository.cs`**
-📌 **Add this new file: `IHallexDataRepository.cs`**
-```csharp
-using System.Threading.Tasks;
-
-namespace PolicyNet.Services.DataMigration.HallexRecords
+[Test]
+public async Task Extract_HA_014_40_003_ShouldReturnNull_ForInvalidId()
 {
-    public interface IHallexDataRepository
-    {
-        Task<HallexRecord?> GetHallexRecordById(string id);
-    }
+    // Arrange
+    var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
+    string invalidId = "INVALID_ID";
+
+    // Act
+    var extracted = await source.Extract(invalidId, true);
+
+    // Assert
+    Assert.Null(extracted);
 }
-```
+
+
+
+
+[Test]
+public async Task Extract_HA_014_40_004_ShouldHandleInvalidJson()
+{
+    // Arrange
+    var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
+
+    // Mocking an invalid JSON response
+    _mockService.Setup(s => s.GetHallexListDoc())
+                .Throws(new JsonException());
+
+    // Act & Assert
+    Assert.ThrowsAsync<JsonException>(async () => await source.Extract(HallexIds.Prod.Active.SomeValidId, true));
+}
+
+
+
+
+[Test]
+public async Task Extract_HA_014_40_005_ShouldHandleMissingHtmlDocument()
+{
+    // Arrange
+    var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
+
+    // Mocking null HTML document
+    _mockService.Setup(s => s.GetHallexListDoc()).ReturnsAsync((HtmlDocument)null);
+
+    // Act
+    var extracted = await source.Extract(HallexIds.Prod.Active.SomeValidId, true);
+
+    // Assert
+    Assert.Null(extracted);
+}
+anaveen
 
 ---
 
