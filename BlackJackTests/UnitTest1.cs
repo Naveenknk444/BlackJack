@@ -1,6 +1,29 @@
 [Test]
 public async Task ExtractAll_HA_014_50_001_ShouldReturnAllHallexRecords()
 {
+    // Arrange: Create an instance of HallexDataMigratorSource
+    var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
+
+    // Act: Call ExtractAll directly
+    var extractedRecords = await source.ExtractAll(true);
+
+    // Assert: Check that results are not null or empty
+    Assert.NotNull(extractedRecords);
+    Assert.That(extractedRecords, Is.Not.Empty);
+
+    // Assert: Validate at least one record exists
+    var firstRecord = extractedRecords.FirstOrDefault();
+    Assert.NotNull(firstRecord);
+    Assert.That(firstRecord.AppProfile, Is.EqualTo("HALLEX"));
+}
+
+
+
+
+
+[Test]
+public async Task ExtractAll_HA_014_50_001_ShouldReturnAllHallexRecords()
+{
     // Arrange
     var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
 
