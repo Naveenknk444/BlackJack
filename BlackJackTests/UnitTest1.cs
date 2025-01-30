@@ -1,4 +1,37 @@
 [Test]
+public async Task ExtractAll_HA_014_50_001_ShouldReturnAllHallexRecords()
+{
+    // Arrange
+    var source = new HallexDataMigratorSource(PolicyNetHtmlOrigin.LegacyWebsiteWithLocalAutosave, null);
+
+    var mockHtmlDoc = new HtmlDocument(); // Simulate an HTML document
+    var expectedRecords = new List<HallexRecordNew>
+    {
+        new HallexRecordNew { Id = "101", Uname = "record1", AppProfile = "HALLEX" },
+        new HallexRecordNew { Id = "102", Uname = "record2", AppProfile = "HALLEX" }
+    };
+
+    _mockService.Setup(s => s.GetHallexListDoc())
+                .ReturnsAsync(mockHtmlDoc);
+
+    _mockService.Setup(s => s.ExtractAllHallexRecordsFromJson(It.IsAny<HtmlDocument>()))
+                .Returns(expectedRecords);
+
+    // Act
+    var extractedRecords = await source.ExtractAll(true);
+
+    // Assert
+    Assert.NotNull(extractedRecords);
+    Assert.That(extractedRecords.Count, Is.EqualTo(2));
+    Assert.That(extractedRecords[0].Id, Is.EqualTo("101"));
+    Assert.That(extractedRecords[1].Id, Is.EqualTo("102"));
+}
+
+
+
+
+
+[Test]
 public async Task Extract_HA_014_40_003_ShouldReturnNull_ForInvalidId()
 {
     // Arrange
