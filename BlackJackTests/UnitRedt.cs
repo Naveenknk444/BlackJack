@@ -6,13 +6,13 @@ using System.Collections.Generic;
 
 namespace PolicyNet.Services.DataMigration.Tests  // Replace with actual test namespace
 {
-    // Mocked service that interacts with the enum
+    // The service that interacts with the PolicyNetHtmlOrigin enum
     public interface IHtmlDocumentService
     {
         Task<HtmlDocument> GetHtmlDocument(string url, CancellationToken cancellationToken);
     }
 
-    // The service that uses the enum to fetch HTML documents
+    // The wrapper class that uses the enum to decide behavior
     public class HtmlDocumentService : IHtmlDocumentService
     {
         private readonly PolicyNetHtmlOrigin _htmlOrigin;
@@ -24,14 +24,15 @@ namespace PolicyNet.Services.DataMigration.Tests  // Replace with actual test na
 
         public async Task<HtmlDocument> GetHtmlDocument(string url, CancellationToken cancellationToken)
         {
+            // Behavior based on the PolicyNetHtmlOrigin enum value
             if (_htmlOrigin == PolicyNetHtmlOrigin.Local)
             {
-                // Simulating local HTML document loading
+                // Simulate local document loading (mocked behavior)
                 return await Task.FromResult(new HtmlDocument());
             }
             else
             {
-                // Simulating remote HTML document loading
+                // Simulate loading from a remote legacy website
                 var htmlWeb = new HtmlWeb();
                 return await htmlWeb.LoadFromWebAsync(url, cancellationToken);
             }
@@ -51,11 +52,11 @@ namespace PolicyNet.Services.DataMigration.Tests  // Replace with actual test na
             _hallexDataMigratorSource = new HallexDataMigratorSource(_mockHtmlDocumentService.Object);  // Class under test
         }
 
-        // Test for Extract method when valid ID is passed
+        // Test for Extract method when valid ID is passed and PolicyNetHtmlOrigin is Local
         [Test]
-        public async Task Extract_ShouldReturnData_WhenValidIdIsPassed()
+        public async Task Extract_ShouldReturnData_WhenValidIdAndLocalOrigin()
         {
-            // Arrange: Setting up the mock service behavior for GetHallexListDoc
+            // Arrange: Mocking the behavior for Local origin (PolicyNetHtmlOrigin.Local)
             var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
             _mockHtmlDocumentService.Setup(service => service.GetHtmlDocument(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockHallexList);
 
@@ -88,11 +89,11 @@ namespace PolicyNet.Services.DataMigration.Tests  // Replace with actual test na
             Assert.That(result, Is.Null);
         }
 
-        // Test for ExtractAll method when data is available
+        // Test for ExtractAll method when data is available (Local origin)
         [Test]
-        public async Task ExtractAll_ShouldReturnData_WhenDataIsAvailable()
+        public async Task ExtractAll_ShouldReturnData_WhenDataIsAvailableAndLocalOrigin()
         {
-            // Arrange: Mocking the ExtractAll method to return a list of records
+            // Arrange: Mocking the ExtractAll method to return a list of records for PolicyNetHtmlOrigin.Local
             var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
             _mockHtmlDocumentService.Setup(service => service.GetHtmlDocument(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockHallexList);
 
