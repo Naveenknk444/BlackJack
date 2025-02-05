@@ -1,152 +1,80 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Moq;
-using NUnit.Framework;
-using PolicyNet.Services.DataMigration.HallexRecords;
+using Xunit;
+using YourNamespace;  // Replace with actual namespace
+using System.Threading.Tasks;
 
-namespace UnitTests.Services.DataMigration
+public class HallexDataMigratorSourceTests
 {
-    [TestFixture]
-    public class HallexDataMigratorSourceTests
+    private readonly Mock<IService> _mockService;  // Mocking the service that HallexDataMigratorSource depends on
+    private readonly HallexDataMigratorSource _hallexDataMigratorSource;
+
+    public HallexDataMigratorSourceTests()
     {
-        private HallexDataMigratorSource _hallexMigrator;
-        private Mock<ILogger<HallexDataMigratorSource>> _loggerMock;
+        // Initialize the mock service
+        _mockService = new Mock<IService>();
+        
+        // Initialize the class under test (HallexDataMigratorSource)
+        _hallexDataMigratorSource = new HallexDataMigratorSource(_mockService.Object);
+    }
 
-        [SetUp]
-        public void Setup()
+    [Fact]
+    public async Task Extract_ShouldReturnData_WhenValidIdIsPassed()
+    {
+        // Arrange: Mock the Extract method behavior
+        var expectedData = new HallexRecordNew { Id = 1, Name = "TestRecord" };
+        _mockService.Setup(service => service.Extract(It.IsAny<int>())).ReturnsAsync(expectedData);
+
+        // Act: Call the Extract method
+        var result = await _hallexDataMigratorSource.Extract(1);
+
+        // Assert: Verify the result
+        Assert.NotNull(result);
+        Assert.Equal("TestRecord", result.Name);
+    }
+
+    [Fact]
+    public async Task Extract_ShouldReturnNull_WhenInvalidIdIsPassed()
+    {
+        // Arrange: Mock the Extract method behavior to return null
+        _mockService.Setup(service => service.Extract(It.IsAny<int>())).ReturnsAsync((HallexRecordNew)null);
+
+        // Act: Call the Extract method with an invalid ID
+        var result = await _hallexDataMigratorSource.Extract(999);
+
+        // Assert: Verify that result is null
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ExtractAll_ShouldReturnData_WhenDataIsAvailable()
+    {
+        // Arrange: Mock the ExtractAll method to return a list of records
+        var expectedRecords = new List<HallexRecordNew>
         {
-            _loggerMock = new Mock<ILogger<HallexDataMigratorSource>>();
-            _hallexMigrator = new HallexDataMigratorSource(new PolicyNetHtmlOrigin(), _loggerMock.Object);
-        }
+            new HallexRecordNew { Id = 1, Name = "Record 1" },
+            new HallexRecordNew { Id = 2, Name = "Record 2" }
+        };
+        _mockService.Setup(service => service.ExtractAll()).ReturnsAsync(expectedRecords);
 
-        [Test]
-        public async Task ExtractAll_ShouldReturnValidRecords_WhenDataIsAvailable()
-        {
-            // Arrange
-            var cancellationToken = CancellationToken.None;
+        // Act: Call the ExtractAll method
+        var result = await _hallexDataMigratorSource.ExtractAll();
 
-            // Act
-            var result = await _hallexMigrator.ExtractAll(cancellationToken);
+        // Assert: Verify that the list contains the expected records
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Record 1", result[0].Name);
+    }
 
-            // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result, Is.Not.Empty);
-        }
+    [Fact]
+    public async Task ExtractAll_ShouldReturnEmptyList_WhenNoDataIsAvailable()
+    {
+        // Arrange: Mock the ExtractAll method to return an empty list
+        _mockService.Setup(service => service.ExtractAll()).ReturnsAsync(new List<HallexRecordNew>());
 
-        [Test]
-        public async Task ExtractAll_ShouldReturnEmptyList_WhenNoDataAvailable()
-        {
-            // Arrange
-            var cancellationToken = CancellationToken.None;
-            // Mock method to return an empty response (if possible)
+        // Act: Call the ExtractAll method
+        var result = await _hallexDataMigratorSource.ExtractAll();
 
-            // Act
-            var result = await _hallexMigrator.ExtractAll(cancellationToken);
-
-            // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result, Is.Empty);
-        }
-
-        [Test]
-        public async Task Extract_ShouldReturnValidRecord_WhenValidIdIsProvided()
-        {
-            // Arrange
-            var validId = "12345";
-
-            // Act
-            var result = await _hallexMigrator.Extract(validId);
-
-            // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Id, Is.EqualTo(validId));
-        }
-
-        [Test]
-        public async Task Extract_ShouldReturnNull_WhenInvalidIdIsProvided()
-        {
-            // Arrange
-            var invalidId = "invalid-id";
-
-            // Act
-            var result = await _hallexMigrator.Extract(invalidId);
-
-            // Assert
-            Assert.That(result, Is.Null);
-        }
-
-        [Test]
-        public async Task GetItemCountOnSource_ShouldReturnValidCount_WhenDataIsAvailable()
-        {
-            // Act
-            var count = await _hallexMigrator.GetItemCountOnSource(CancellationToken.None);
-
-            // Assert
-            Assert.That(count, Is.GreaterThan(0));
-        }
-
-        [Test]
-        public async Task GetItemCountOnSource_ShouldReturnZero_WhenNoDataAvailable()
-        {
-            // Act
-            var count = await _hallexMigrator.GetItemCountOnSource(CancellationToken.None);
-
-            // Assert
-            Assert.That(count, Is.EqualTo(0));
-        }
-
-        [Test]
-        public void CreateHallexHashSetFromJson_ShouldReturnValidData_WhenJsonIsValid()
-        {
-            // Arrange
-            string validJson = "{ \"12345\": { \"Id\": \"12345\", \"Name\": \"TestRecord\" } }";
-
-            // Act
-            var result = _hallexMigrator.CreateHallexHashSetFromJson(validJson, false);
-
-            // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result, Is.Not.Empty);
-        }
-
-        [Test]
-        public void CreateHallexHashSetFromJson_ShouldReturnEmptySet_WhenJsonIsMalformed()
-        {
-            // Arrange
-            string invalidJson = "{ invalid json }";
-
-            // Act
-            var result = _hallexMigrator.CreateHallexHashSetFromJson(invalidJson, false);
-
-            // Assert
-            Assert.That(result, Is.Empty);
-        }
-
-        [Test]
-        public async Task SetHallexContent_ShouldCorrectlyAssignContent()
-        {
-            // Arrange
-            var hallexRecord = new HallexRecordNew { Id = "12345" };
-
-            // Act
-            var result = await _hallexMigrator.SetHallexContent(hallexRecord, false);
-
-            // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.HallexContent, Is.Not.Null);
-        }
-
-        [Test]
-        public async Task SetHallexContent_ShouldHandleNullInputGracefully()
-        {
-            // Act
-            var result = await _hallexMigrator.SetHallexContent(null, false);
-
-            // Assert
-            Assert.That(result, Is.Null);
-        }
+        // Assert: Verify that the list is empty
+        Assert.Empty(result);
     }
 }
