@@ -68,4 +68,68 @@ namespace PolicyNet.Services.DataMigration.Tests  // Replace with actual test na
 
             // Assert: Verifying the result using Assert.That
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.Name, Is.Equal
+            Assert.That(result.Name, Is.EqualTo("TestRecord"));
+        }
+
+        // Test for Extract method when invalid ID is passed
+        [Test]
+        public async Task Extract_ShouldReturnNull_WhenInvalidIdIsPassed()
+        {
+            // Arrange: Mocking the Extract method to return null for invalid ID
+            var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
+            _mockHtmlDocumentService.Setup(service => service.GetHtmlDocument(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockHallexList);
+
+            _mockHtmlDocumentService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "999")).Returns((HallexRecordNew)null);
+
+            // Act: Calling the Extract method with an invalid ID
+            var result = await _hallexDataMigratorSource.Extract("999", false);
+
+            // Assert: Verifying that the result is null
+            Assert.That(result, Is.Null);
+        }
+
+        // Test for ExtractAll method when data is available
+        [Test]
+        public async Task ExtractAll_ShouldReturnData_WhenDataIsAvailable()
+        {
+            // Arrange: Mocking the ExtractAll method to return a list of records
+            var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
+            _mockHtmlDocumentService.Setup(service => service.GetHtmlDocument(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockHallexList);
+
+            var mockRecordList = new List<HallexRecordNew>
+            {
+                new HallexRecordNew { Id = "1", Name = "Record 1" },
+                new HallexRecordNew { Id = "2", Name = "Record 2" }
+            };
+
+            _mockHtmlDocumentService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "1")).Returns(mockRecordList[0]);
+            _mockHtmlDocumentService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "2")).Returns(mockRecordList[1]);
+
+            // Act: Calling the ExtractAll method
+            var result = await _hallexDataMigratorSource.ExtractAll();
+
+            // Assert: Verifying the result using Assert.That
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(2));  // Verifying two records are returned
+            Assert.That(result[0].Name, Is.EqualTo("Record 1"));
+        }
+
+        // Test for ExtractAll method when no data is available
+        [Test]
+        public async Task ExtractAll_ShouldReturnEmptyList_WhenNoDataIsAvailable()
+        {
+            // Arrange: Mocking the ExtractAll method to return an empty list
+            var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
+            _mockHtmlDocumentService.Setup(service => service.GetHtmlDocument(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockHallexList);
+
+            _mockHtmlDocumentService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, It.IsAny<string>())).Returns((HallexRecordNew)null);
+
+            // Act: Calling the ExtractAll method
+            var result = await _hallexDataMigratorSource.ExtractAll();
+
+            // Assert: Verifying that the result is an empty list using Assert.That
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(0));
+        }
+    }
+}
