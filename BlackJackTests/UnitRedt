@@ -2,6 +2,7 @@ using Moq;
 using Xunit;
 using YourNamespace;  // Replace with actual namespace
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 public class HallexDataMigratorSourceTests
 {
@@ -27,9 +28,9 @@ public class HallexDataMigratorSourceTests
         // Act: Call the Extract method
         var result = await _hallexDataMigratorSource.Extract(1);
 
-        // Assert: Verify the result
-        Assert.NotNull(result);
-        Assert.Equal("TestRecord", result.Name);
+        // Assert: Verify the result using Assert.That
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Name, Is.EqualTo("TestRecord"));
     }
 
     [Fact]
@@ -41,8 +42,8 @@ public class HallexDataMigratorSourceTests
         // Act: Call the Extract method with an invalid ID
         var result = await _hallexDataMigratorSource.Extract(999);
 
-        // Assert: Verify that result is null
-        Assert.Null(result);
+        // Assert: Verify that result is null using Assert.That
+        Assert.That(result, Is.Null);
     }
 
     [Fact]
@@ -59,10 +60,10 @@ public class HallexDataMigratorSourceTests
         // Act: Call the ExtractAll method
         var result = await _hallexDataMigratorSource.ExtractAll();
 
-        // Assert: Verify that the list contains the expected records
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count);
-        Assert.Equal("Record 1", result[0].Name);
+        // Assert: Verify that the list contains the expected records using Assert.That
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(2));
+        Assert.That(result[0].Name, Is.EqualTo("Record 1"));
     }
 
     [Fact]
@@ -74,7 +75,8 @@ public class HallexDataMigratorSourceTests
         // Act: Call the ExtractAll method
         var result = await _hallexDataMigratorSource.ExtractAll();
 
-        // Assert: Verify that the list is empty
-        Assert.Empty(result);
+        // Assert: Verify that the list is empty using Assert.That
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(0));
     }
 }
