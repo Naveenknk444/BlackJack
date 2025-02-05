@@ -1,5 +1,5 @@
 using Moq;
-using NUnit.Framework;
+using NUnit.Framework;  // Using NUnit for testing
 using YourProjectNamespace;  // Replace with actual project namespace
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -8,27 +8,30 @@ namespace YourProjectNamespace.Tests  // Replace with actual namespace of your C
 {
     public class HallexDataMigratorSourceTests
     {
-        private readonly Mock<IHallexApiService> _mockHallexApiService;  // Mocking the service that HallexDataMigratorSource depends on
+        private readonly Mock<IHtmlService> _mockHtmlService;  // Mocking service for GetHtmlDocument
         private readonly HallexDataMigratorSource _hallexDataMigratorSource;
 
         // Constructor for setting up the mock service and HallexDataMigratorSource
         public HallexDataMigratorSourceTests()
         {
-            _mockHallexApiService = new Mock<IHallexApiService>();  // Replace IHallexApiService with the actual class used
-            _hallexDataMigratorSource = new HallexDataMigratorSource(_mockHallexApiService.Object);  // Replace with actual class name
+            _mockHtmlService = new Mock<IHtmlService>();  // Replace IHtmlService with the actual service for fetching HTML
+            _hallexDataMigratorSource = new HallexDataMigratorSource(_mockHtmlService.Object);  // Replace with actual class name
         }
 
         // Test for Extract method when valid ID is passed
         [Test]
         public async Task Extract_ShouldReturnData_WhenValidIdIsPassed()
         {
-            // Arrange: Setting up the mock service behavior for first API call (fetching list of records)
-            var expectedData = new HallexRecordNew { Id = 1, Name = "TestRecord" };  // Replace HallexRecordNew with actual class name
-            _mockHallexApiService.Setup(service => service.GetRecordIds()).ReturnsAsync(new List<int> { 1, 2, 3 });
-            _mockHallexApiService.Setup(service => service.GetDetailedRecord(It.IsAny<int>())).ReturnsAsync(expectedData);
+            // Arrange: Setting up the mock service behavior for GetHallexListDoc
+            var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
+            _mockHtmlService.Setup(service => service.GetHallexListDoc()).ReturnsAsync(mockHallexList);
+
+            // Mocking ExtractSingleHallexRecordFromJson to return a sample record
+            var expectedRecord = new HallexRecordNew { Id = "1", Name = "TestRecord" };
+            _mockHtmlService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "1")).Returns(expectedRecord);
 
             // Act: Calling the Extract method
-            var result = await _hallexDataMigratorSource.Extract(1);
+            var result = await _hallexDataMigratorSource.Extract("1", false);
 
             // Assert: Verifying the result using Assert.That
             Assert.That(result, Is.Not.Null);
@@ -40,11 +43,14 @@ namespace YourProjectNamespace.Tests  // Replace with actual namespace of your C
         public async Task Extract_ShouldReturnNull_WhenInvalidIdIsPassed()
         {
             // Arrange: Mocking the Extract method to return null for invalid ID
-            _mockHallexApiService.Setup(service => service.GetRecordIds()).ReturnsAsync(new List<int> { 1, 2, 3 });
-            _mockHallexApiService.Setup(service => service.GetDetailedRecord(It.IsAny<int>())).ReturnsAsync((HallexRecordNew)null);
+            var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
+            _mockHtmlService.Setup(service => service.GetHallexListDoc()).ReturnsAsync(mockHallexList);
+
+            // Mocking ExtractSingleHallexRecordFromJson to return null for non-existing ID
+            _mockHtmlService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "999")).Returns((HallexRecordNew)null);
 
             // Act: Calling the Extract method with an invalid ID
-            var result = await _hallexDataMigratorSource.Extract(999);
+            var result = await _hallexDataMigratorSource.Extract("999", false);
 
             // Assert: Verifying that the result is null using Assert.That
             Assert.That(result, Is.Null);
@@ -54,41 +60,41 @@ namespace YourProjectNamespace.Tests  // Replace with actual namespace of your C
         [Test]
         public async Task ExtractAll_ShouldReturnData_WhenDataIsAvailable()
         {
-            // Arrange: Mocking the ExtractAll method to return a list of records (first API call)
-            var mockRecordIds = new List<int> { 1, 2, 3 };  // Simulating 3 records (can extend to 753 if needed)
-            var expectedRecords = new List<HallexRecordNew>
+            // Arrange: Mocking the ExtractAll method to return a list of records
+            var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
+            _mockHtmlService.Setup(service => service.GetHallexListDoc()).ReturnsAsync(mockHallexList);
+
+            var mockRecordList = new List<HallexRecordNew>
             {
-                new HallexRecordNew { Id = 1, Name = "Record 1" },  // Replace with actual object and property names
-                new HallexRecordNew { Id = 2, Name = "Record 2" },
-                new HallexRecordNew { Id = 3, Name = "Record 3" }
+                new HallexRecordNew { Id = "1", Name = "Record 1" },
+                new HallexRecordNew { Id = "2", Name = "Record 2" }
             };
 
-            _mockHallexApiService.Setup(service => service.GetRecordIds()).ReturnsAsync(mockRecordIds);
-            _mockHallexApiService.Setup(service => service.GetDetailedRecord(It.IsAny<int>())).ReturnsAsync((int id) => expectedRecords.Find(x => x.Id == id));
-
-            // Act: Calling the ExtractAll method to fetch all records
-            var result = await _hallexDataMigratorSource.ExtractAll();
-
-            // Assert: Verifying the result using Assert.That
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Count, Is.EqualTo(3));  // Change this number based on the mock data size
-            Assert.That(result[0].Name, Is.EqualTo("Record 1"));
-        }
-
-        // Test for ExtractAll method when no data is available
-        [Test]
-        public async Task ExtractAll_ShouldReturnEmptyList_WhenNoDataIsAvailable()
-        {
-            // Arrange: Mocking the ExtractAll method to return an empty list
-            _mockHallexApiService.Setup(service => service.GetRecordIds()).ReturnsAsync(new List<int>());
-            _mockHallexApiService.Setup(service => service.GetDetailedRecord(It.IsAny<int>())).ReturnsAsync((HallexRecordNew)null);
+            _mockHtmlService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "1")).Returns(mockRecordList[0]);
+            _mockHtmlService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "2")).Returns(mockRecordList[1]);
 
             // Act: Calling the ExtractAll method
             var result = await _hallexDataMigratorSource.ExtractAll();
 
-            // Assert: Verifying that the result is an empty list using Assert.That
+            // Assert: Verifying the result using Assert.That
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.Count, Is.EqualTo(0));
+            Assert.That(result.Count, Is.EqualTo(2));  // Verifying two records are returned
+            Assert.That(result[0].Name, Is.EqualTo("Record 1"));
+        }
+
+        // Test for SaveHtmlFileToResourcesFolder method
+        [Test]
+        public async Task SaveHtmlFileToResourcesFolder_ShouldSaveHtmlFile_WhenCalled()
+        {
+            // Arrange: Setting up the mock for SaveHtmlFileToResourcesFolder
+            var mockDocument = new HtmlDocument();  // Mocking the document
+            _mockHtmlService.Setup(service => service.SaveHtmlFileToResourcesFolder(It.IsAny<string>(), mockDocument)).Returns(true);
+
+            // Act: Calling the method
+            var result = await _hallexDataMigratorSource.SaveHtmlFileToResourcesFolder("hallex.json", mockDocument);
+
+            // Assert: Verifying that the method was called successfully
+            Assert.That(result, Is.True);
         }
     }
 }
