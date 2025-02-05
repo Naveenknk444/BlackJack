@@ -1,82 +1,74 @@
 using Moq;
-using Xunit;
-using YourNamespace;  // Replace with actual namespace
+using NUnit.Framework;  // Using NUnit for testing
+using YourProjectNamespace;  // Replace with actual project namespace used in ClusterTest
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-public class HallexDataMigratorSourceTests
+namespace YourProjectNamespace.Tests  // Replace with the actual namespace of your ClusterTest
 {
-    private readonly Mock<IService> _mockService;  // Mocking the service that HallexDataMigratorSource depends on
-    private readonly HallexDataMigratorSource _hallexDataMigratorSource;
-
-    public HallexDataMigratorSourceTests()
+    public class HallexDataMigratorSourceTests
     {
-        // Initialize the mock service
-        _mockService = new Mock<IService>();
-        
-        // Initialize the class under test (HallexDataMigratorSource)
-        _hallexDataMigratorSource = new HallexDataMigratorSource(_mockService.Object);
-    }
+        private readonly Mock<IRepository> _mockRepository;  // Mocking the repository or service that HallexDataMigratorSource depends on
+        private readonly HallexDataMigratorSource _hallexDataMigratorSource;
 
-    [Fact]
-    public async Task Extract_ShouldReturnData_WhenValidIdIsPassed()
-    {
-        // Arrange: Mock the Extract method behavior
-        var expectedData = new HallexRecordNew { Id = 1, Name = "TestRecord" };
-        _mockService.Setup(service => service.Extract(It.IsAny<int>())).ReturnsAsync(expectedData);
-
-        // Act: Call the Extract method
-        var result = await _hallexDataMigratorSource.Extract(1);
-
-        // Assert: Verify the result using Assert.That
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Name, Is.EqualTo("TestRecord"));
-    }
-
-    [Fact]
-    public async Task Extract_ShouldReturnNull_WhenInvalidIdIsPassed()
-    {
-        // Arrange: Mock the Extract method behavior to return null
-        _mockService.Setup(service => service.Extract(It.IsAny<int>())).ReturnsAsync((HallexRecordNew)null);
-
-        // Act: Call the Extract method with an invalid ID
-        var result = await _hallexDataMigratorSource.Extract(999);
-
-        // Assert: Verify that result is null using Assert.That
-        Assert.That(result, Is.Null);
-    }
-
-    [Fact]
-    public async Task ExtractAll_ShouldReturnData_WhenDataIsAvailable()
-    {
-        // Arrange: Mock the ExtractAll method to return a list of records
-        var expectedRecords = new List<HallexRecordNew>
+        // Constructor for setting up the mock repository and HallexDataMigratorSource
+        public HallexDataMigratorSourceTests()
         {
-            new HallexRecordNew { Id = 1, Name = "Record 1" },
-            new HallexRecordNew { Id = 2, Name = "Record 2" }
-        };
-        _mockService.Setup(service => service.ExtractAll()).ReturnsAsync(expectedRecords);
+            _mockRepository = new Mock<IRepository>();  // Replace IRepository with the actual dependency class
+            _hallexDataMigratorSource = new HallexDataMigratorSource(_mockRepository.Object);  // Replace with actual class name
+        }
 
-        // Act: Call the ExtractAll method
-        var result = await _hallexDataMigratorSource.ExtractAll();
+        // Test for Extract method when valid ID is passed
+        [Test]
+        public async Task Extract_ShouldReturnData_WhenValidIdIsPassed()
+        {
+            // Arrange: Setting up the mock repository behavior
+            var expectedData = new HallexRecordNew { Id = 1, Name = "TestRecord" };  // Replace HallexRecordNew with actual class name
+            _mockRepository.Setup(repo => repo.Extract(It.IsAny<int>())).ReturnsAsync(expectedData);
 
-        // Assert: Verify that the list contains the expected records using Assert.That
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count, Is.EqualTo(2));
-        Assert.That(result[0].Name, Is.EqualTo("Record 1"));
-    }
+            // Act: Calling the Extract method
+            var result = await _hallexDataMigratorSource.Extract(1);
 
-    [Fact]
-    public async Task ExtractAll_ShouldReturnEmptyList_WhenNoDataIsAvailable()
-    {
-        // Arrange: Mock the ExtractAll method to return an empty list
-        _mockService.Setup(service => service.ExtractAll()).ReturnsAsync(new List<HallexRecordNew>());
+            // Assert: Verifying the result using Assert.That
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Name, Is.EqualTo("TestRecord"));
+        }
 
-        // Act: Call the ExtractAll method
-        var result = await _hallexDataMigratorSource.ExtractAll();
+        // Test for Extract method when invalid ID is passed
+        [Test]
+        public async Task Extract_ShouldReturnNull_WhenInvalidIdIsPassed()
+        {
+            // Arrange: Mocking the Extract method to return null for invalid ID
+            _mockRepository.Setup(repo => repo.Extract(It.IsAny<int>())).ReturnsAsync((HallexRecordNew)null);
 
-        // Assert: Verify that the list is empty using Assert.That
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count, Is.EqualTo(0));
-    }
-}
+            // Act: Calling the Extract method with an invalid ID
+            var result = await _hallexDataMigratorSource.Extract(999);
+
+            // Assert: Verifying that the result is null using Assert.That
+            Assert.That(result, Is.Null);
+        }
+
+        // Test for ExtractAll method when data is available
+        [Test]
+        public async Task ExtractAll_ShouldReturnData_WhenDataIsAvailable()
+        {
+            // Arrange: Mocking the ExtractAll method to return a list of records
+            var expectedRecords = new List<HallexRecordNew>
+            {
+                new HallexRecordNew { Id = 1, Name = "Record 1" },  // Replace with actual object and property names
+                new HallexRecordNew { Id = 2, Name = "Record 2" }
+            };
+            _mockRepository.Setup(repo => repo.ExtractAll()).ReturnsAsync(expectedRecords);
+
+            // Act: Calling the ExtractAll method
+            var result = await _hallexDataMigratorSource.ExtractAll();
+
+            // Assert: Verifying the result using Assert.That
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result[0].Name, Is.EqualTo("Record 1"));
+        }
+
+        // Test for ExtractAll method when no data is available
+        [Test]
+        public async Task ExtractAll_ShouldReturn
