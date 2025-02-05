@@ -1,30 +1,31 @@
 using Moq;
-using NUnit.Framework;  // Using NUnit for testing
-using YourProjectNamespace;  // Replace with actual project namespace used in ClusterTest
+using NUnit.Framework;
+using YourProjectNamespace;  // Replace with actual project namespace
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-namespace YourProjectNamespace.Tests  // Replace with the actual namespace of your ClusterTest
+namespace YourProjectNamespace.Tests  // Replace with actual namespace of your ClusterTest
 {
     public class HallexDataMigratorSourceTests
     {
-        private readonly Mock<IRepository> _mockRepository;  // Mocking the repository or service that HallexDataMigratorSource depends on
+        private readonly Mock<IHallexApiService> _mockHallexApiService;  // Mocking the service that HallexDataMigratorSource depends on
         private readonly HallexDataMigratorSource _hallexDataMigratorSource;
 
-        // Constructor for setting up the mock repository and HallexDataMigratorSource
+        // Constructor for setting up the mock service and HallexDataMigratorSource
         public HallexDataMigratorSourceTests()
         {
-            _mockRepository = new Mock<IRepository>();  // Replace IRepository with the actual dependency class
-            _hallexDataMigratorSource = new HallexDataMigratorSource(_mockRepository.Object);  // Replace with actual class name
+            _mockHallexApiService = new Mock<IHallexApiService>();  // Replace IHallexApiService with the actual class used
+            _hallexDataMigratorSource = new HallexDataMigratorSource(_mockHallexApiService.Object);  // Replace with actual class name
         }
 
         // Test for Extract method when valid ID is passed
         [Test]
         public async Task Extract_ShouldReturnData_WhenValidIdIsPassed()
         {
-            // Arrange: Setting up the mock repository behavior
+            // Arrange: Setting up the mock service behavior for first API call (fetching list of records)
             var expectedData = new HallexRecordNew { Id = 1, Name = "TestRecord" };  // Replace HallexRecordNew with actual class name
-            _mockRepository.Setup(repo => repo.Extract(It.IsAny<int>())).ReturnsAsync(expectedData);
+            _mockHallexApiService.Setup(service => service.GetRecordIds()).ReturnsAsync(new List<int> { 1, 2, 3 });
+            _mockHallexApiService.Setup(service => service.GetDetailedRecord(It.IsAny<int>())).ReturnsAsync(expectedData);
 
             // Act: Calling the Extract method
             var result = await _hallexDataMigratorSource.Extract(1);
@@ -39,7 +40,8 @@ namespace YourProjectNamespace.Tests  // Replace with the actual namespace of yo
         public async Task Extract_ShouldReturnNull_WhenInvalidIdIsPassed()
         {
             // Arrange: Mocking the Extract method to return null for invalid ID
-            _mockRepository.Setup(repo => repo.Extract(It.IsAny<int>())).ReturnsAsync((HallexRecordNew)null);
+            _mockHallexApiService.Setup(service => service.GetRecordIds()).ReturnsAsync(new List<int> { 1, 2, 3 });
+            _mockHallexApiService.Setup(service => service.GetDetailedRecord(It.IsAny<int>())).ReturnsAsync((HallexRecordNew)null);
 
             // Act: Calling the Extract method with an invalid ID
             var result = await _hallexDataMigratorSource.Extract(999);
@@ -52,23 +54,41 @@ namespace YourProjectNamespace.Tests  // Replace with the actual namespace of yo
         [Test]
         public async Task ExtractAll_ShouldReturnData_WhenDataIsAvailable()
         {
-            // Arrange: Mocking the ExtractAll method to return a list of records
+            // Arrange: Mocking the ExtractAll method to return a list of records (first API call)
+            var mockRecordIds = new List<int> { 1, 2, 3 };  // Simulating 3 records (can extend to 753 if needed)
             var expectedRecords = new List<HallexRecordNew>
             {
                 new HallexRecordNew { Id = 1, Name = "Record 1" },  // Replace with actual object and property names
-                new HallexRecordNew { Id = 2, Name = "Record 2" }
+                new HallexRecordNew { Id = 2, Name = "Record 2" },
+                new HallexRecordNew { Id = 3, Name = "Record 3" }
             };
-            _mockRepository.Setup(repo => repo.ExtractAll()).ReturnsAsync(expectedRecords);
 
-            // Act: Calling the ExtractAll method
+            _mockHallexApiService.Setup(service => service.GetRecordIds()).ReturnsAsync(mockRecordIds);
+            _mockHallexApiService.Setup(service => service.GetDetailedRecord(It.IsAny<int>())).ReturnsAsync((int id) => expectedRecords.Find(x => x.Id == id));
+
+            // Act: Calling the ExtractAll method to fetch all records
             var result = await _hallexDataMigratorSource.ExtractAll();
 
             // Assert: Verifying the result using Assert.That
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result.Count, Is.EqualTo(3));  // Change this number based on the mock data size
             Assert.That(result[0].Name, Is.EqualTo("Record 1"));
         }
 
         // Test for ExtractAll method when no data is available
         [Test]
-        public async Task ExtractAll_ShouldReturn
+        public async Task ExtractAll_ShouldReturnEmptyList_WhenNoDataIsAvailable()
+        {
+            // Arrange: Mocking the ExtractAll method to return an empty list
+            _mockHallexApiService.Setup(service => service.GetRecordIds()).ReturnsAsync(new List<int>());
+            _mockHallexApiService.Setup(service => service.GetDetailedRecord(It.IsAny<int>())).ReturnsAsync((HallexRecordNew)null);
+
+            // Act: Calling the ExtractAll method
+            var result = await _hallexDataMigratorSource.ExtractAll();
+
+            // Assert: Verifying that the result is an empty list using Assert.That
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count, Is.EqualTo(0));
+        }
+    }
+}
