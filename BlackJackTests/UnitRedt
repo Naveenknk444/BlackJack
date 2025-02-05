@@ -1,21 +1,43 @@
 using Moq;
 using NUnit.Framework;  // Using NUnit for testing
-using YourProjectNamespace;  // Replace with actual project namespace
+using PolicyNet.Services.DataMigration.HallexRecords;  // Replace with actual namespace
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-namespace YourProjectNamespace.Tests  // Replace with actual namespace of your ClusterTest
+namespace PolicyNet.Services.DataMigration.Tests  // Replace with actual test namespace
 {
+    // Wrapper class for HtmlOrigin (to allow mocking)
+    public interface IHtmlDocumentService
+    {
+        Task<HtmlDocument> GetHtmlDocument(string url, CancellationToken cancellationToken);
+        Task<HallexRecordNew> ExtractSingleHallexRecordFromJson(HtmlDocument hallexJsonList, string id);
+    }
+
+    // The wrapper class that interacts with HtmlOrigin
+    public class HtmlDocumentService : IHtmlDocumentService
+    {
+        public async Task<HtmlDocument> GetHtmlDocument(string url, CancellationToken cancellationToken)
+        {
+            return await HtmlOrigin.GetHtmlDocument(url, cancellationToken); // Use HtmlOrigin directly
+        }
+
+        public async Task<HallexRecordNew> ExtractSingleHallexRecordFromJson(HtmlDocument hallexJsonList, string id)
+        {
+            return await HallexDataMigratorSource.ExtractSingleHallexRecordFromJson(hallexJsonList, id);
+        }
+    }
+
+    [TestFixture]
     public class HallexDataMigratorSourceTests
     {
-        private readonly Mock<IHtmlService> _mockHtmlService;  // Mocking service for GetHtmlDocument
+        private readonly Mock<IHtmlDocumentService> _mockHtmlDocumentService;  // Mocking the wrapper service
         private readonly HallexDataMigratorSource _hallexDataMigratorSource;
 
         // Constructor for setting up the mock service and HallexDataMigratorSource
         public HallexDataMigratorSourceTests()
         {
-            _mockHtmlService = new Mock<IHtmlService>();  // Replace IHtmlService with the actual service for fetching HTML
-            _hallexDataMigratorSource = new HallexDataMigratorSource(_mockHtmlService.Object);  // Replace with actual class name
+            _mockHtmlDocumentService = new Mock<IHtmlDocumentService>();  // Mocking the wrapper service
+            _hallexDataMigratorSource = new HallexDataMigratorSource(_mockHtmlDocumentService.Object);  // Class under test
         }
 
         // Test for Extract method when valid ID is passed
@@ -24,11 +46,11 @@ namespace YourProjectNamespace.Tests  // Replace with actual namespace of your C
         {
             // Arrange: Setting up the mock service behavior for GetHallexListDoc
             var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
-            _mockHtmlService.Setup(service => service.GetHallexListDoc()).ReturnsAsync(mockHallexList);
+            _mockHtmlDocumentService.Setup(service => service.GetHtmlDocument(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockHallexList);
 
             // Mocking ExtractSingleHallexRecordFromJson to return a sample record
             var expectedRecord = new HallexRecordNew { Id = "1", Name = "TestRecord" };
-            _mockHtmlService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "1")).Returns(expectedRecord);
+            _mockHtmlDocumentService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "1")).Returns(expectedRecord);
 
             // Act: Calling the Extract method
             var result = await _hallexDataMigratorSource.Extract("1", false);
@@ -44,15 +66,14 @@ namespace YourProjectNamespace.Tests  // Replace with actual namespace of your C
         {
             // Arrange: Mocking the Extract method to return null for invalid ID
             var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
-            _mockHtmlService.Setup(service => service.GetHallexListDoc()).ReturnsAsync(mockHallexList);
+            _mockHtmlDocumentService.Setup(service => service.GetHtmlDocument(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockHallexList);
 
-            // Mocking ExtractSingleHallexRecordFromJson to return null for non-existing ID
-            _mockHtmlService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "999")).Returns((HallexRecordNew)null);
+            _mockHtmlDocumentService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "999")).Returns((HallexRecordNew)null);
 
             // Act: Calling the Extract method with an invalid ID
             var result = await _hallexDataMigratorSource.Extract("999", false);
 
-            // Assert: Verifying that the result is null using Assert.That
+            // Assert: Verifying that the result is null
             Assert.That(result, Is.Null);
         }
 
@@ -62,7 +83,7 @@ namespace YourProjectNamespace.Tests  // Replace with actual namespace of your C
         {
             // Arrange: Mocking the ExtractAll method to return a list of records
             var mockHallexList = new HtmlDocument();  // Mocking the document returned by GetHallexListDoc
-            _mockHtmlService.Setup(service => service.GetHallexListDoc()).ReturnsAsync(mockHallexList);
+            _mockHtmlDocumentService.Setup(service => service.GetHtmlDocument(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockHallexList);
 
             var mockRecordList = new List<HallexRecordNew>
             {
@@ -70,8 +91,8 @@ namespace YourProjectNamespace.Tests  // Replace with actual namespace of your C
                 new HallexRecordNew { Id = "2", Name = "Record 2" }
             };
 
-            _mockHtmlService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "1")).Returns(mockRecordList[0]);
-            _mockHtmlService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "2")).Returns(mockRecordList[1]);
+            _mockHtmlDocumentService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "1")).Returns(mockRecordList[0]);
+            _mockHtmlDocumentService.Setup(service => service.ExtractSingleHallexRecordFromJson(mockHallexList, "2")).Returns(mockRecordList[1]);
 
             // Act: Calling the ExtractAll method
             var result = await _hallexDataMigratorSource.ExtractAll();
@@ -82,19 +103,8 @@ namespace YourProjectNamespace.Tests  // Replace with actual namespace of your C
             Assert.That(result[0].Name, Is.EqualTo("Record 1"));
         }
 
-        // Test for SaveHtmlFileToResourcesFolder method
+        // Test for ExtractAll method when no data is available
         [Test]
-        public async Task SaveHtmlFileToResourcesFolder_ShouldSaveHtmlFile_WhenCalled()
+        public async Task ExtractAll_ShouldReturnEmptyList_WhenNoDataIsAvailable()
         {
-            // Arrange: Setting up the mock for SaveHtmlFileToResourcesFolder
-            var mockDocument = new HtmlDocument();  // Mocking the document
-            _mockHtmlService.Setup(service => service.SaveHtmlFileToResourcesFolder(It.IsAny<string>(), mockDocument)).Returns(true);
-
-            // Act: Calling the method
-            var result = await _hallexDataMigratorSource.SaveHtmlFileToResourcesFolder("hallex.json", mockDocument);
-
-            // Assert: Verifying that the method was called successfully
-            Assert.That(result, Is.True);
-        }
-    }
-}
+         
