@@ -1,12 +1,13 @@
-public class DBConnection
+public bool CheckRecordsInOracle(string query)
 {
-    private static string oracleConnectionString = ConfigurationManager.ConnectionStrings["OracleDBContext"].ConnectionString;
-
-    public NpgsqlConnection GetOracleConnection()
+    using (var connection = new DBConnection().GetOracleConnection())
     {
-        var connection = new NpgsqlConnection(oracleConnectionString);
-        connection.Open();
-        return connection;
+        using (var command = new NpgsqlCommand(query, connection))
+        {
+            using (var reader = command.ExecuteReader())
+            {
+                return reader.Read(); // True if records are found
+            }
+        }
     }
 }
-
