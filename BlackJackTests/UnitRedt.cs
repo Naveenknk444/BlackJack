@@ -1,20 +1,12 @@
-private List<bool> CheckRecordsInOracle(List<string> linkRefs)
+public class DBConnection
 {
-    var exists = new List<bool>();
-    string connectionString = ConfigurationManager.ConnectionStrings["OracleDb"].ConnectionString;
+    private static string oracleConnectionString = ConfigurationManager.ConnectionStrings["OracleDBContext"].ConnectionString;
 
-    using (OracleConnection conn = new OracleConnection(connectionString))
+    public NpgsqlConnection GetOracleConnection()
     {
-        conn.Open();
-        foreach (var ref in linkRefs)
-        {
-            using (OracleCommand cmd = new OracleCommand("SELECT COUNT(1) FROM YourTable WHERE YourColumn = :ref", conn))
-            {
-                cmd.Parameters.Add(new OracleParameter("ref", ref));
-                int count = Convert.ToInt32(cmd.ExecuteScalar());
-                exists.Add(count > 0);
-            }
-        }
+        var connection = new NpgsqlConnection(oracleConnectionString);
+        connection.Open();
+        return connection;
     }
-    return exists;
 }
+
