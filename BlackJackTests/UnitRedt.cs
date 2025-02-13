@@ -1,5 +1,20 @@
-<configuration>
-  <connectionStrings>
-    <add name="OracleDb" connectionString="Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=your_host)(PORT=your_port))(CONNECT_DATA=(SERVICE_NAME=your_service_name)));User Id=your_username;Password=your_password;" providerName="Oracle.ManagedDataAccess.Client" />
-  </connectionStrings>
-</configuration>
+private List<bool> CheckRecordsInOracle(List<string> linkRefs)
+{
+    var exists = new List<bool>();
+    string connectionString = ConfigurationManager.ConnectionStrings["OracleDb"].ConnectionString;
+
+    using (OracleConnection conn = new OracleConnection(connectionString))
+    {
+        conn.Open();
+        foreach (var ref in linkRefs)
+        {
+            using (OracleCommand cmd = new OracleCommand("SELECT COUNT(1) FROM YourTable WHERE YourColumn = :ref", conn))
+            {
+                cmd.Parameters.Add(new OracleParameter("ref", ref));
+                int count = Convert.ToInt32(cmd.ExecuteScalar());
+                exists.Add(count > 0);
+            }
+        }
+    }
+    return exists;
+}
