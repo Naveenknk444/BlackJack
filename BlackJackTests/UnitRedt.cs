@@ -1,10 +1,7 @@
-using System.Xml.Linq;
-using System.Collections.Generic;
-
-private Dictionary<string, string> GetLinksFromXML(string xmlContent)
+private Dictionary<string, (string TargetRef, bool isLink)> GetLinksFromXML(string xmlContent)
 {
     var doc = XDocument.Parse(xmlContent);
-    var links = new Dictionary<string, string>();
+    var links = new Dictionary<string, (string, bool)>();
 
     foreach (var element in doc.Descendants().Where(e => e.Attribute("link") != null))
     {
@@ -13,7 +10,7 @@ private Dictionary<string, string> GetLinksFromXML(string xmlContent)
 
         if (!string.IsNullOrEmpty(targetDoc) && !string.IsNullOrEmpty(targetRef))
         {
-            links[targetDoc] = targetRef;
+            links[targetDoc] = (targetRef, true); // set the boolean value as needed
         }
     }
 
