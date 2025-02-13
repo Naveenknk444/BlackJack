@@ -10,9 +10,22 @@ private Dictionary<string, (string TargetRef, bool isLink)> GetLinksFromXML(stri
 
         if (!string.IsNullOrEmpty(targetDoc) && !string.IsNullOrEmpty(targetRef))
         {
-            links[targetDoc] = (targetRef, true); // set the boolean value as needed
+            // Check if the record exists in the database
+            bool exists = CheckRecordInDatabase(targetDoc, targetRef);
+
+            // Add to dictionary
+            links[targetDoc] = (targetRef, exists);
         }
     }
 
     return links;
+}
+
+// Method to check if the record exists in the database
+private bool CheckRecordInDatabase(string targetDoc, string targetRef)
+{
+    // Implement database check logic here
+    // Example: query the database to see if the combination exists
+    // Return true if exists, false otherwise
+    return false;
 }
