@@ -1,20 +1,44 @@
-public List<string> CheckRecordsInOracle(List<string> linkRefs)
-{
-    List<string> results = new List<string>();
-    string query = $"SELECT * FROM YourTable WHERE LinkRef IN ('{string.Join("','", linkRefs)}')";
+using System;
+using System.Data;
+using Oracle.ManagedDataAccess.Client;
 
-    using (var connection = new DBConnection().GetOracleConnection())
+class Program
+{
+    static void Main()
     {
-        using (var command = new NpgsqlCommand(query, connection))
+        string connectionString = "Your_Oracle_Connection_String"; // Replace with your actual connection string
+
+        string query = "SELECT * FROM anchor WHERE clctn_nm = 'CFR' AND ankr_num LIKE 'CFR-20-404-1597-A'";
+
+        try
         {
-            using (var reader = command. ExecuteReader())
+            using (OracleConnection connection = new OracleConnection(connectionString))
             {
-                while (reader.Read())
+                connection.Open();
+                Console.WriteLine("Oracle Connection Successful!");
+
+                using (OracleCommand command = new OracleCommand(query, connection))
                 {
-                    results.Add(reader["LinkRef"].ToString()); // Adjust based on your table schema
+                    using (OracleDataReader reader = command.ExecuteReader())
+                    {
+                        Console.WriteLine("Query executed successfully. Results:");
+
+                        DataTable schemaTable = reader.GetSchemaTable();
+                        while (reader.Read())
+                        {
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                Console.WriteLine($"{schemaTable.Rows[i]["ColumnName"]}: {reader[i]}");
+                            }
+                            Console.WriteLine("--------------------------------------------------");
+                        }
+                    }
                 }
             }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
     }
-    return results;
 }
