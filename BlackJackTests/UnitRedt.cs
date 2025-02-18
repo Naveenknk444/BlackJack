@@ -1,1 +1,6 @@
-SELECT 1 FROM YourTable WHERE (targetDoc = 'CFR' AND targetRef = 'CFR-20-404-315(a)(1)(i)') OR (targetDoc = 'CFR' AND targetRef = 'CFR-20-404-327') OR (targetDoc = 'CFR' AND targetRef = 'CFR-20-404-352') OR (targetDoc =
+private string CreateQuery(List<Link> links)
+{
+    var conditions = links.Select(link => $"(targetDoc = '{link.TargetDoc}' AND targetRef = '{link.TargetRef}')");
+    var query = $"SELECT 1 FROM YourTable WHERE " + string.Join(" OR ", conditions) + " LIMIT 1";
+    return query;
+}
