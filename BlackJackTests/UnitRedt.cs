@@ -1,43 +1,29 @@
-using System;
-using System.Linq;
-using System.Xml.Linq;
-using System.Xml;
+// Load XML into XmlDocument
+var xDoc = new XmlDocument();
+xDoc.PreserveWhitespace = true;
+xDoc.LoadXml(xmlStringReplaced); // Keep this as it is
 
-class Program
+// Convert XmlDocument to XDocument for LINQ operations
+XDocument xDocument;
+using (var reader = new XmlNodeReader(xDoc))
 {
-    static void Main()
-    {
-        string xmlInput = @"YOUR_XML_STRING_HERE"; // Replace with actual XML content
-
-        XmlReaderSettings settings = new XmlReaderSettings
-        {
-            DtdProcessing = DtdProcessing.Ignore // Ignores DTD processing to avoid undeclared entity errors
-        };
-
-        using (var reader = XmlReader.Create(new System.IO.StringReader(xmlInput), settings))
-        {
-            XDocument doc = XDocument.Load(reader);
-
-            // Extract <RegReferences> tag
-            var regReferences = doc.Descendants("RegReferences").FirstOrDefault();
-            
-            if (regReferences != null)
-            {
-                // Extract all <Link> elements inside <RegReferences>
-                var links = regReferences.Descendants("Link")
-                                         .Select(link => link.ToString())
-                                         .ToList();
-
-                // Display extracted <Link> elements
-                foreach (var link in links)
-                {
-                    Console.WriteLine(link);
-                }
-            }
-            else
-            {
-                Console.WriteLine("No <RegReferences> tag found in the XML.");
-            }
-        }
-    }
+    xDocument = XDocument.Load(reader);
 }
+
+// Extract all <Link> elements from <RegReferences>
+var linksDoc = xDocument.Descendants("Link")
+                        .Select(link => new
+                        {
+                            TargetDoc = link.Attribute("TargetDoc")?.Value,
+                            TargetRef = link.Attribute("TargetRef")?.Value,
+                            Text = link.Value
+                        })
+                        .ToList();
+
+// If you need to log or process these links further, you can loop through them
+foreach (var link in linksDoc)
+{
+    Console.WriteLine($"TargetDoc: {link.TargetDoc}, TargetRef: {link.TargetRef}, Text: {link.Text}");
+}
+
+// Now, continue with the existing `ResolveEntities` logic as needed
