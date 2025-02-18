@@ -1,63 +1,34 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.OracleClient;
-using System.Linq;
-using System.Xml;
-using System.Xml.Linq;
-
-class Program
+static void UpdateLinkFlagsFromOracle(Dictionary<string, bool> linkXmlObject)
 {
-    static void Main()
+    using (var oracleConn = DBConnection.GetOracleConnection()) // Use existing DB connection method
     {
-        string xmlStringReplaced = @"YOUR_XML_STRING_HERE"; // Replace with actual XML
+        oracleConn.Open();
 
-        XmlDocument xDoc = new XmlDocument();
-        xDoc.PreserveWhitespace = true;
-        xDoc.LoadXml(xmlStringReplaced);
-
-        // Convert XmlDocument to XDocument
-        XDocument xDocument;
-        using (var reader = new XmlNodeReader(xDoc))
+        if (linkXmlObject.Count > 0)
         {
-            xDocument = XDocument.Load(reader);
-        }
+            // Construct batch SQL query with multiple TargetRef values
+            string query = "SELECT TargetRef FROM YOUR_ORACLE_TABLE WHERE TargetRef IN (" +
+                           string.Join(",", linkXmlObject.Keys.Select((_, i) => $":targetRef{i}")) + ")";
 
-        // Step 1: Extract all <Link> elements and store them in a Dictionary
-        var linkXmlObject = xDocument.Descendants("Link")
-                                     .Select(link => link.Attribute("TargetRef")?.Value)
-                                     .Where(targetRef => !string.IsNullOrEmpty(targetRef))
-                                     .Distinct()
-                                     .ToDictionary(targetRef => targetRef, targetRef => false); // Initially set to false
-
-        // Step 2: Check these records in Oracle and update the flag
-        UpdateLinkFlagsFromOracle(linkXmlObject);
-
-        // Step 3: Display the final dictionary (for debugging/logging)
-        foreach (var entry in linkXmlObject)
-        {
-            Console.WriteLine($"TargetRef: {entry.Key}, Exists in Oracle: {entry.Value}");
-        }
-    }
-
-    static void UpdateLinkFlagsFromOracle(Dictionary<string, bool> linkXmlObject)
-    {
-        string oracleConnectionString = System.Configuration.ConfigurationManager.ConnectionStrings["PolicyNetOracleDbContext"].ConnectionString;
-
-        using (OracleConnection conn = new OracleConnection(oracleConnectionString))
-        {
-            conn.Open();
-            
-            foreach (var targetRef in linkXmlObject.Keys.ToList()) // Iterate over keys
+            using (var cmd = new OracleCommand(query, oracleConn))
             {
-                string query = $"SELECT COUNT(*) FROM YOUR_ORACLE_TABLE WHERE TargetRef = :targetRef";
-
-                using (OracleCommand cmd = new OracleCommand(query, conn))
+                // Add parameters dynamically
+                int index = 0;
+                foreach (var targetRef in linkXmlObject.Keys)
                 {
-                    cmd.Parameters.Add(new OracleParameter("targetRef", targetRef));
+                    cmd.Parameters.Add(new OracleParameter($"targetRef{index++}", targetRef));
+                }
 
-                    int count = Convert.ToInt32(cmd.ExecuteScalar());
-                    linkXmlObject[targetRef] = count > 0; // Set flag to true if record exists
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string existingRef = reader["TargetRef"].ToString();
+                        if (linkXmlObject.ContainsKey(existingRef))
+                        {
+                            linkXmlObject[existingRef] = true; // Update flag if found in Oracle
+                        }
+                    }
                 }
             }
         }
