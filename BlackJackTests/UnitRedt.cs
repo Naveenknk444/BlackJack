@@ -1,36 +1,19 @@
-static void UpdateLinkFlagsFromOracle(Dictionary<string, bool> linkXmlObject)
-{
-    using (var oracleConn = DBConnection.GetOracleConnection()) // Use existing DB connection method
+// Step 1: Extract all <Link> elements and store them in a Dictionary with both TargetDoc and TargetRef
+var linkXmlObject = xDocument.Descendants("Link")
+    .Select(link => new
     {
-        oracleConn.Open();
+        TargetDoc = link.Attribute("TargetDoc")?.Value,
+        TargetRef = link.Attribute("TargetRef")?.Value
+    })
+    .Where(x => !string.IsNullOrEmpty(x.TargetDoc) && !string.IsNullOrEmpty(x.TargetRef))
+    .Distinct()
+    .ToDictionary(x => (x.TargetDoc, x.TargetRef), x => false); // Store as a tuple (TargetDoc, TargetRef)
 
-        if (linkXmlObject.Count > 0)
-        {
-            // Construct batch SQL query with multiple TargetRef values
-            string query = "SELECT TargetRef FROM YOUR_ORACLE_TABLE WHERE TargetRef IN (" +
-                           string.Join(",", linkXmlObject.Keys.Select((_, i) => $":targetRef{i}")) + ")";
+// Step 2: Check these records in Oracle and update the flag
+UpdateLinkFlagsFromOracle(linkXmlObject);
 
-            using (var cmd = new OracleCommand(query, oracleConn))
-            {
-                // Add parameters dynamically
-                int index = 0;
-                foreach (var targetRef in linkXmlObject.Keys)
-                {
-                    cmd.Parameters.Add(new OracleParameter($"targetRef{index++}", targetRef));
-                }
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        string existingRef = reader["TargetRef"].ToString();
-                        if (linkXmlObject.ContainsKey(existingRef))
-                        {
-                            linkXmlObject[existingRef] = true; // Update flag if found in Oracle
-                        }
-                    }
-                }
-            }
-        }
-    }
+// Step 3: Display the final dictionary (for debugging/logging)
+foreach (var entry in linkXmlObject)
+{
+    Console.WriteLine($"TargetDoc: {entry.Key.TargetDoc}, TargetRef: {entry.Key.TargetRef}, Exists in Oracle: {entry.Value}");
 }
